@@ -17,6 +17,7 @@
   "css.customData": [".vscode/tailwind.json"],
   "cSpell.words": [
     "asynciterable",
+    "djwt",
     "GDRIVE",
     "signin",
     "Signout"

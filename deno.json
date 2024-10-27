@@ -20,6 +20,8 @@
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
+    "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
+    "google-auth-library": "npm:google-auth-library@^9.14.2",
     "preact": "https://esm.sh/preact@10.22.0",
     "preact/": "https://esm.sh/preact@10.22.0/",
     "tailwindcss": "npm:tailwindcss@3.4.1",
