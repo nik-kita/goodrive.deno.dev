@@ -22,5 +22,5 @@ async function generate_token_pairs(sub: string) {
     }),
   ]);
 
-  return { access_token, refresh_token };
+  return { access_token, refresh_token, token_type: "bearer" };
 }

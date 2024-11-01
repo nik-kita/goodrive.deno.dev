@@ -1,8 +1,6 @@
-export const GOOGLE_GDRIVE_SCOPES = [
-  "https://www.googleapis.com/auth/drive",
-  "openid",
-  "email",
-];
+export const GOOGLE_OPEN_ID_SCOPE = "openid";
+export const GOOGLE_GDRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"];
+export const GOOGLE_USERINFO_SCOPES = "email";
 
 export type GoogleAuthJwtPayload = {
   iss: string;

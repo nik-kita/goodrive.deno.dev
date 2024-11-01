@@ -10,9 +10,22 @@ export default async function (_req: Request, _ctx: RouteContext) {
   return (
     <div>
       <h1>Welcome!</h1>
+      <fieldset>
+        <legend>Auth</legend>
+        <ul>
+          <li>
+            <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN}>
+              Sign In with Google
+            </a>
+          </li>
+          <li>
+            <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT}>Sign Out</a>
+          </li>
+        </ul>
+      </fieldset>
+      <hr />
       <CleanKvButton />
       <pre>{JSON.stringify(data, null, 2)}</pre>
-      <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN}>Sign In with Google</a>
     </div>
   );
 }
