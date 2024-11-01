@@ -23,6 +23,14 @@ export const EnvSchema = z.object({
     .describe("Google OAuth Callback URL"),
   GOOGLE_CLIENT_ID: z.string().describe("Google OAuth Client ID"),
   GOOGLE_CLIENT_SECRET: z.string().describe("Google OAuth Client Secret"),
+  ACCESS_TOKEN_PRIVATE_KEY: z.string().describe("Private key for JWT signing"),
+  ACCESS_TOKEN_PUBLIC_KEY: z.string().describe(
+    "Public key for JWT verification",
+  ),
+  REFRESH_TOKEN_PRIVATE_KEY: z.string().describe("Private key for JWT signing"),
+  REFRESH_TOKEN_PUBLIC_KEY: z.string().describe(
+    "Public key for JWT verification",
+  ),
 });
 export type Env = z.infer<typeof EnvSchema>;
 export const env = await EnvSchema.parseAsync(await load({ export: true }));

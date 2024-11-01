@@ -6,6 +6,7 @@ import {
   type Payload,
   verify,
 } from "@wok/djwt";
+import { env } from "../env.ts";
 
 export class CryptoKeyUtil {
   public static convert_to_crypto_key({
@@ -50,14 +51,14 @@ export class CryptoKeyUtil {
     privateKeyPem,
     expiresIn,
   }: {
-    user_id: number;
+    user_id: string;
     issuer: string;
     privateKeyPem: "ACCESS_TOKEN_PRIVATE_KEY" | "REFRESH_TOKEN_PRIVATE_KEY";
     expiresIn: Date;
   }): Promise<{ token: string }> {
     const header: Header = {
       alg: "RS256",
-      // typ: "JWT",
+      typ: "JWT",
     };
 
     const nowInSeconds = Math.floor(Date.now() / 1000);
@@ -67,11 +68,11 @@ export class CryptoKeyUtil {
       iss: issuer,
       iat: nowInSeconds,
       exp: tokenExpiresIn,
-      sub: user_id.toString(),
+      sub: user_id,
     };
 
     const cryptoPrivateKey = await CryptoKeyUtil.convert_to_crypto_key({
-      pemKey: atob(Deno.env.get(privateKeyPem) as unknown as string),
+      pemKey: atob(env[privateKeyPem]),
       type: "PRIVATE",
     });
 
@@ -89,7 +90,7 @@ export class CryptoKeyUtil {
   }): Promise<T | null> {
     try {
       const cryptoPublicKey = await CryptoKeyUtil.convert_to_crypto_key({
-        pemKey: atob(Deno.env.get(publicKeyPem) as unknown as string),
+        pemKey: atob(env[publicKeyPem]),
         type: "PUBLIC",
       });
 

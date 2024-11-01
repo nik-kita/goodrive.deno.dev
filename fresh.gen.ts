@@ -4,6 +4,7 @@
 
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
+import * as $api_auth_refresh from "./routes/api/auth/refresh.ts";
 import * as $api_clean_kv from "./routes/api/clean-kv.ts";
 import * as $index from "./routes/index.tsx";
 import * as $clean_kv_button from "./islands/clean-kv-button.tsx";
@@ -13,6 +14,7 @@ const manifest = {
   routes: {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
+    "./routes/api/auth/refresh.ts": $api_auth_refresh,
     "./routes/api/clean-kv.ts": $api_clean_kv,
     "./routes/index.tsx": $index,
   },
