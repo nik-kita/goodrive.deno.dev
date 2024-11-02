@@ -28,27 +28,17 @@ export const handler_callback_google: PluginRoute["handler"] = async (req) => {
   const is_refreshTokenExists = !!tokens.refreshToken;
 
   if (!user) {
-    await Promise.all([
-      db.core.user.add({
-        sub: info.sub,
-        google_drive_access_info: is_email
-          ? {
-            [info.email!]: {
-              access: !!tokens.accessToken,
-              refresh: !!tokens.refreshToken,
-            },
-          }
-          : {},
-      }),
-      Promise.resolve(
-        is_email && db.core.google_drive_access.add({
-          sub: info.sub,
-          email: info.email!,
-          access_token: tokens.accessToken,
-          refresh_token: tokens.refreshToken,
-        }),
-      ),
-    ]);
+    await db.core.user.add({
+      sub: info.sub,
+      google_drive_access_info: is_email
+        ? {
+          [info.email!]: {
+            access_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken,
+          },
+        }
+        : {},
+    });
 
     if (is_gDriveAccessExists) {
       console.warn(
@@ -64,7 +54,8 @@ export const handler_callback_google: PluginRoute["handler"] = async (req) => {
     }
   } else {
     if (is_gDriveAccessExists) {
-      if (!is_email) {
+      const email = is_email && info.email;
+      if (!email) {
         console.warn(
           "handler_callback_google: gDrive scopes without email",
         );
@@ -73,11 +64,9 @@ export const handler_callback_google: PluginRoute["handler"] = async (req) => {
         const res_redirect_to_signIn_with_gDrive2 = await signIn(req, true);
 
         return res_redirect_to_signIn_with_gDrive2;
-      }
-
-      if (
+      } else if (
         !is_refreshTokenExists &&
-        !user.google_drive_access_info[info.email!]?.refresh
+        !user.google_drive_access_info[email]?.refresh_token
       ) {
         console.warn(
           "handler_callback_google: user has not refreshToken",
@@ -88,35 +77,19 @@ export const handler_callback_google: PluginRoute["handler"] = async (req) => {
 
         return res_redirect_to_signIn_with_gDrive3;
       }
-
-      await Promise.all([
-        db.core.google_drive_access.updateByPrimaryIndex("sub", user.sub, {
-          email: info.email!,
-          access_token: tokens.accessToken,
-          ...(is_refreshTokenExists && { refresh_token: tokens.refreshToken }),
-        }, {
-          strategy: "merge",
-          mergeOptions: {
-            arrays: "merge",
-            maps: "merge",
-          },
-        }),
-        db.core.user.updateByPrimaryIndex("sub", user.sub, {
-          google_drive_access_info: {
-            [info.email!]: {
-              access: !!tokens.accessToken,
-              refresh: true, // always true, because above we return to signIn if nor info.refreshToken nor users's prev refreshToken existed
-            },
-          },
-        }, {
-          strategy: "merge",
-          mergeOptions: {
-            arrays: "merge",
-            maps: "merge",
-          },
-        }),
-      ]);
     }
+
+    console.debug("handler_callback_google: updating user");
+    await db.core.user.updateByPrimaryIndex("sub", user.sub, {
+      google_drive_access_info: {
+        [info.email!]: {
+          access_token: tokens.accessToken,
+          ...(is_refreshTokenExists && { refresh_token: tokens.accessToken }),
+        },
+      },
+    }, {
+      strategy: "merge",
+    });
   }
 
   return response;

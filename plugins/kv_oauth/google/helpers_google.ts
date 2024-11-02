@@ -30,11 +30,15 @@ const gDrive_auth_helper = createHelpers(
 );
 
 export const signIn = async (req: Request, with_gDrive_scopes = false) => {
-  const res = with_gDrive_scopes
-    ? await gDrive_auth_helper.signIn(req, {
+  if (with_gDrive_scopes || (await getSessionData(req))?.user) {
+    const res = await gDrive_auth_helper.signIn(req, {
       urlParams: OFFLINE_PARAMS,
-    })
-    : await oid_auth_helper.signIn(req);
+    });
+
+    return res;
+  }
+
+  const res = await oid_auth_helper.signIn(req);
 
   return res;
 };
