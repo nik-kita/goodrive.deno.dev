@@ -1,10 +1,19 @@
 import { createGoogleOAuthConfig, createHelpers } from "@deno/kv-oauth";
-import { GOOGLE_GDRIVE_SCOPES, GOOGLE_OPEN_ID_SCOPE } from "../../../const.ts";
+import {
+  GOOGLE_GDRIVE_SCOPES,
+  GOOGLE_OPEN_ID_SCOPE,
+  GOOGLE_USERINFO_SCOPES,
+} from "../../../const.ts";
 import { env } from "../../../env.ts";
 import { db } from "../../../kv.ts";
 import { Tokens_deno_land_x_oauth2_client } from "../../../types.ts";
 
-const oid = createHelpers(
+const OFFLINE_PARAMS = {
+  access_type: "offline",
+  prompt: "consent",
+};
+
+const oid_auth_helper = createHelpers(
   createGoogleOAuthConfig({
     redirectUri: env.API_URL +
       env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
@@ -12,90 +21,78 @@ const oid = createHelpers(
   }),
 );
 
-const gDrive = createHelpers(
+const gDrive_auth_helper = createHelpers(
   createGoogleOAuthConfig({
     redirectUri: env.API_URL +
       env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
-    scope: GOOGLE_GDRIVE_SCOPES,
+    scope: GOOGLE_GDRIVE_SCOPES.concat(GOOGLE_USERINFO_SCOPES),
   }),
 );
 
-export const getSessionData = async (req: Request) => {
-  const [oidS, gDriveS] = await Promise.all([
-    oid.getSessionId(req),
-    gDrive.getSessionId(req),
-  ]);
+export const signIn = async (req: Request, with_gDrive_scopes = false) => {
+  const res = with_gDrive_scopes
+    ? await gDrive_auth_helper.signIn(req, {
+      urlParams: OFFLINE_PARAMS,
+    })
+    : await oid_auth_helper.signIn(req);
 
-  if (oidS !== gDriveS) {
-    throw new Error("oid !== gDrive => incorrect sessions understanding");
-  } else if (!oidS) {
+  return res;
+};
+
+export const getSessionData = async (req: Request) => {
+  const sessionId = await oid_auth_helper.getSessionId(req);
+
+  if (!sessionId) {
     return null;
   }
 
-  const appSession = await db.user.session.findByPrimaryIndex("session", oidS);
+  const user = await db.core.app_session.findByPrimaryIndex(
+    "session",
+    sessionId,
+  ).then(async (appSessionRes) => {
+    if (!appSessionRes?.value) {
+      return null;
+    }
 
-  if (!appSession?.value) {
-    throw new Error(
-      "!user?.value => unexpected app-session (db record) absence",
-    );
-  }
+    const user = await db.core.user.findByPrimaryIndex(
+      "sub",
+      appSessionRes.value.sub,
+    ).then((userRes) => userRes?.value);
 
-  const user = await db.user.public.findByPrimaryIndex(
-    "sub",
-    appSession.value.sub,
-  );
+    return user;
+  });
 
-  if (!user?.value) {
-    throw new Error("!user?.value => unexpected user absence");
+  if (!user) {
+    console.warn("sessionId && !appSession");
+    return {
+      sessionId: null,
+      forceSignIn: () => {
+        console.warn("forceSignIn()");
+        return signIn(req);
+      },
+    };
   }
 
   return {
-    session: oidS,
-    user: user.value,
+    sessionId,
+    user,
   };
 };
 
-export const signIn = async (req: Request) => {
-  const data = await getSessionData(req);
-
-  if (!data) {
-    const response = await oid.signIn(req);
-
-    return response;
-  }
-
-  // deno-lint-ignore no-unused-vars
-  const { session, user } = data;
-  // TODO: check is session is not only exist but is also already fulfilled with gDrive scopes
-  const response = await gDrive.signIn(req).then((res) => {
-    return res;
-  });
-
-  return response;
-};
-
 export const callbackHandler = async (req: Request) => {
-  const response = await oid.handleCallback(req);
+  const response = await oid_auth_helper.handleCallback(req);
 
   return response as T_handleCallback_result;
 };
 
 export const signOut = async (req: Request) => {
-  const data = await getSessionData(req);
+  const res = await oid_auth_helper.signOut(req);
 
-  if (!data || !data.user || !data.session) {
-    console.warn(
-      "singOut(): !data => unexpected session-data absence",
-    );
-
-    return await oid.signOut(req);
-  }
-
-  return await oid.signOut(req);
+  return res;
 };
 
 type T_handleCallback_origin_result = Awaited<
-  ReturnType<typeof oid.handleCallback>
+  ReturnType<typeof oid_auth_helper.handleCallback>
 >;
 type T_handleCallback_result =
   & Omit<
