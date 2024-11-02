@@ -3,11 +3,14 @@ import { env } from "../env.ts";
 import { CleanKvButton } from "../islands/clean-kv-button.tsx";
 import { getSessionData } from "../plugins/kv_oauth/google/helpers_google.ts";
 
-export default async function (_req: Request, _ctx: RouteContext) {
-  const session = await getSessionData(_req);
+export default async function (req: Request, _ctx: RouteContext) {
+  const session = await getSessionData(req);
   const data = await Array.fromAsync(
     await Deno.openKv().then((kv) => kv.list({ prefix: [] })),
   );
+  const dbData = Object.fromEntries(data.map((v) => {
+    return [v.key.join("/"), v.value];
+  }));
 
   return (
     <div>
@@ -27,7 +30,14 @@ export default async function (_req: Request, _ctx: RouteContext) {
       </fieldset>
       <hr />
       <CleanKvButton />
-      <pre>{JSON.stringify(data, null, 2)}</pre>
+      <details open>
+        <summary>session</summary>
+        <pre>{JSON.stringify(session, null, 2)}</pre>
+      </details>
+      <details open>
+        <summary>kv</summary>
+        <pre>{JSON.stringify(dbData, null, 2)}</pre>
+      </details>
     </div>
   );
 }
