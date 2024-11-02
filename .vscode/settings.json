@@ -19,6 +19,8 @@
     "asynciterable",
     "djwt",
     "GDRIVE",
+    "kvdex",
+    "olli",
     "signin",
     "Signout"
   ]

@@ -1,10 +1,10 @@
 import { type RouteContext } from "$fresh/server.ts";
 import { env } from "../env.ts";
 import { CleanKvButton } from "../islands/clean-kv-button.tsx";
-import { getSessionId } from "../plugins/kv_oauth/google/helpers_google.ts";
+import { getSessionData } from "../plugins/kv_oauth/google/helpers_google.ts";
 
 export default async function (_req: Request, _ctx: RouteContext) {
-  const session = await getSessionId(_req);
+  const session = await getSessionData(_req);
   const data = await Array.fromAsync(
     await Deno.openKv().then((kv) => kv.list({ prefix: [] })),
   );

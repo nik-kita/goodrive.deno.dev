@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-const PrivateMetaSchema = z.object({
+export const UserPrivate = z.object({
   sub: z.string(),
-  gDrive: z.record(
+  gDrivePrivate: z.record(
     z.string().email(),
     z.object({
       access_token: z.string().optional(),
       refresh_token: z.string().optional(),
     }),
-  ),
+  ).optional(),
 });
 
-export type PrivateMeta = z.infer<typeof PrivateMetaSchema>;
+export type UserPrivate = z.infer<typeof UserPrivate>;
