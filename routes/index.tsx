@@ -1,13 +1,14 @@
 import { type RouteContext } from "$fresh/server.ts";
 import { env } from "../env.ts";
 import { CleanKvButton } from "../islands/clean-kv-button.tsx";
-import { getSessionData } from "../plugins/kv_oauth/google/helpers_google.ts";
+import { google_authentication_sign_out_handler } from "../plugins/kv_oauth/google/authentication/sign-out.ts";
+import { get_session } from "../plugins/kv_oauth/google/get-session.ts";
 
 export default async function (req: Request, _ctx: RouteContext) {
-  const sessionData = await getSessionData(req);
+  const sessionData = await get_session(req);
 
-  if (sessionData?.forceSignIn) {
-    return sessionData.forceSignIn();
+  if (!sessionData?.user) {
+    return await google_authentication_sign_out_handler(req);
   }
 
   const data = await Array.fromAsync(

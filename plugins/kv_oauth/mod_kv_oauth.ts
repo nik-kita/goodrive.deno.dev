@@ -1,16 +1,10 @@
 /// <reference lib="deno.unstable" />
 import type { Plugin } from "$fresh/server.ts";
 import { env } from "../../env.ts";
-import { handler_callback_google } from "./google/handler_callback_google.ts";
-import { handler_signin_google } from "./google/handler_signin_google.ts";
-import { handler_signout_google } from "./google/handler_signout_google.ts";
-import { getSessionData } from "./google/helpers_google.ts";
-
-export const get_session_id = async (req: Request) => {
-  const result = await getSessionData(req);
-
-  return result;
-};
+import { google_authentication_sign_in_handler } from "./google/authentication/sign-in.ts";
+import { google_authentication_sign_out_handler } from "./google/authentication/sign-out.ts";
+import { google_authentication_cb_handler } from "./google/cb-handler.ts";
+import { google_g_drive_authorization_sign_in_handler } from "./google/g-drive-authorization/sign-in.ts";
 
 export default () => {
   return {
@@ -18,15 +12,19 @@ export default () => {
     routes: [
       {
         path: env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
-        handler: handler_signin_google,
+        handler: google_authentication_sign_in_handler,
       },
       {
         path: env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
-        handler: handler_callback_google,
+        handler: google_authentication_cb_handler,
       },
       {
         path: env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT,
-        handler: handler_signout_google,
+        handler: google_authentication_sign_out_handler,
+      },
+      {
+        path: env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE,
+        handler: google_g_drive_authorization_sign_in_handler,
       },
     ],
   } as Plugin;

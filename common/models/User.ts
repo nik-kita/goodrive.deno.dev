@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const User = z.object({
   sub: z.string(),
-  google_drive_access_info: z.record(
+  google_drive_authorization: z.record(
     z.string().email(),
     z.object({
       access_token: z.string().optional(),

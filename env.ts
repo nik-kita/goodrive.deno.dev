@@ -17,6 +17,9 @@ export const EnvSchema = z.object({
     "/api/auth/signout/google",
   )
     .describe("Google OAuth Signout Endpoint"),
+  API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE: z.string().default(
+    "/api/auth/authorization/google-drive",
+  ),
   API_ENDPOINT_AUTH_CALLBACK_GOOGLE: z
     .string()
     .default("/api/auth/callback/google")

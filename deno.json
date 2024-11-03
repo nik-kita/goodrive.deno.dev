@@ -17,6 +17,7 @@
     "$fresh/": "https://deno.land/x/fresh@1.7.3/",
     "$std/": "https://deno.land/std@0.216.0/",
     "@deno/kv-oauth": "jsr:@deno/kv-oauth@^0.11.0",
+    "@kitsonk/kv-toolbox": "jsr:@kitsonk/kv-toolbox@^0.21.1",
     "@olli/kvdex": "jsr:@olli/kvdex@^2.1.2",
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
