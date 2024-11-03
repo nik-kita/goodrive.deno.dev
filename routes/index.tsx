@@ -7,7 +7,7 @@ import { get_session } from "../plugins/kv_oauth/google/get-session.ts";
 export default async function (req: Request, _ctx: RouteContext) {
   const sessionData = await get_session(req);
 
-  if (!sessionData?.user) {
+  if (sessionData?.session_id && !sessionData?.user) {
     return await google_authentication_sign_out_handler(req);
   }
 
