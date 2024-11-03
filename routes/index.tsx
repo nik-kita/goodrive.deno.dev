@@ -18,6 +18,23 @@ export default async function (req: Request, _ctx: RouteContext) {
     return [v.key.join("/"), v.value];
   }));
 
+  const user_storages = Object.entries(
+    sessionData?.user?.google_drive_authorization || {},
+  ).map(([email, tokens]) => {
+    return (
+      <details>
+        <summary>{email}</summary>
+        <input
+          {...{
+            type: "checkbox",
+            disabled: true,
+            checked: !!(tokens?.access_token && tokens.refresh_token),
+          }}
+        />
+      </details>
+    );
+  });
+
   return (
     <div>
       <h1>Welcome!</h1>
@@ -33,6 +50,17 @@ export default async function (req: Request, _ctx: RouteContext) {
             <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT}>Sign Out</a>
           </li>
         </ul>
+      </fieldset>
+      <fieldset>
+        <legend>App</legend>
+        <ul>
+          {user_storages}
+        </ul>
+        <a href={env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
+          <button>
+            Add New Tiny Storage
+          </button>
+        </a>
       </fieldset>
       <hr />
       <CleanKvButton />
