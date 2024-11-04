@@ -1,7 +1,7 @@
 import { createGoogleOAuthConfig, createHelpers } from "@deno/kv-oauth";
 import { GOOGLE_OPEN_ID_SCOPE } from "../../../../const.ts";
 import { Env } from "../../../../common/env.ts";
-import { HandleCallbackType } from "../../../../types.ts";
+import { HandleCallbackType } from "../../../../common/types.ts";
 
 const helpers = createHelpers(
   createGoogleOAuthConfig({

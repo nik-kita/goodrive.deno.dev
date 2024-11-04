@@ -2,7 +2,7 @@ import { intersect } from "@std/collections";
 import { db } from "../../../common/kv.ts";
 import { GOOGLE_GDRIVE_SCOPES } from "../../../const.ts";
 import { User } from "../../../core/models/User.ts";
-import { Tokens } from "../../../types.ts";
+import { Tokens } from "../../../common/types.ts";
 import { google_authentication_helpers } from "./authentication/helpers.ts";
 import { gClient } from "./g-client.ts";
 import { google_g_drive_authorization_sign_in_handler } from "./g-drive-authorization/sign-in.ts";

@@ -5,7 +5,7 @@ import {
   GOOGLE_OFFLINE_CONSENT_PARAMS,
 } from "../../../../const.ts";
 import { Env } from "../../../../common/env.ts";
-import { HandleCallbackType } from "../../../../types.ts";
+import { HandleCallbackType } from "../../../../common/types.ts";
 
 const helpers = createHelpers(
   createGoogleOAuthConfig({
