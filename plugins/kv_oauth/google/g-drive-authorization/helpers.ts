@@ -4,13 +4,13 @@ import {
   GOOGLE_GDRIVE_SCOPES,
   GOOGLE_OFFLINE_CONSENT_PARAMS,
 } from "../../../../const.ts";
-import { env } from "../../../../env.ts";
+import { Env } from "../../../../common/env.ts";
 import { HandleCallbackType } from "../../../../types.ts";
 
 const helpers = createHelpers(
   createGoogleOAuthConfig({
-    redirectUri: env.API_URL +
-      env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
+    redirectUri: Env.API_URL +
+      Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     scope: GOOGLE_GDRIVE_SCOPES.concat(GOOGLE_EMAIL_SCOPE),
   }),
 );

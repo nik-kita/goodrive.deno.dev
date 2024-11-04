@@ -1,12 +1,12 @@
 import { createGoogleOAuthConfig, createHelpers } from "@deno/kv-oauth";
 import { GOOGLE_OPEN_ID_SCOPE } from "../../../../const.ts";
-import { env } from "../../../../env.ts";
+import { Env } from "../../../../common/env.ts";
 import { HandleCallbackType } from "../../../../types.ts";
 
 const helpers = createHelpers(
   createGoogleOAuthConfig({
-    redirectUri: env.API_URL +
-      env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
+    redirectUri: Env.API_URL +
+      Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     scope: GOOGLE_OPEN_ID_SCOPE,
   }),
 );

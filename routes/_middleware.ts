@@ -1,23 +1,28 @@
-import { FreshContext } from "$fresh/server.ts";
-import { kv } from "../kv.ts";
+import { type Handler } from "$fresh/server.ts";
 
-export async function handler(
-  _req: Request,
-  ctx: FreshContext,
-) {
-  try {
-    const resp = await ctx.next();
-    return resp;
-  } catch (err) {
-    console.error(err);
+export type AppState = {
+  origin: string;
+};
 
-    await kv.set(["error", Date.now()], err);
-
-    return new Response(null, {
-      headers: {
-        location: "/500",
-      },
-      status: 302,
-    });
+const attach_request_origin: Handler<unknown, AppState> = (
+  req,
+  c,
+) => {
+  console.group("middleware: attach_request_origin");
+  if (c.destination !== "route" || c.remoteAddr.transport !== "tcp") {
+    console.groupEnd();
+    return c.next();
   }
-}
+
+  const origin = req.headers.get("origin") || req.headers.get("referer") || "/";
+
+  c.state.origin = origin;
+
+  console.log(origin);
+  console.groupEnd();
+  return c.next();
+};
+
+export const handler = [
+  attach_request_origin,
+];

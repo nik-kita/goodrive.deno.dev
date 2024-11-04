@@ -1,4 +1,4 @@
-import { db } from "../../../kv.ts";
+import { db } from "../../../common/kv.ts";
 import { google_authentication_helpers } from "./authentication/helpers.ts";
 
 export const get_session = async (req: Request) => {
@@ -8,7 +8,7 @@ export const get_session = async (req: Request) => {
     return null;
   }
 
-  const user = await db.core.app_session.findByPrimaryIndex(
+  const user = await db.app_session.findByPrimaryIndex(
     "session",
     session_id,
   ).then(async (res) => {
@@ -16,7 +16,7 @@ export const get_session = async (req: Request) => {
       return null;
     }
 
-    const user_res = await db.core.user.findByPrimaryIndex(
+    const user_res = await db.user.findByPrimaryIndex(
       "sub",
       res.value.sub,
     );

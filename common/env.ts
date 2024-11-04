@@ -35,5 +35,10 @@ export const EnvSchema = z.object({
     "Public key for JWT verification",
   ),
 });
+const deno_env = Deno.env.toObject();
+
 export type Env = z.infer<typeof EnvSchema>;
-export const env = await EnvSchema.parseAsync(await load({ export: true }));
+export const Env = await EnvSchema.parseAsync({
+  ...deno_env,
+  ...await load(),
+});

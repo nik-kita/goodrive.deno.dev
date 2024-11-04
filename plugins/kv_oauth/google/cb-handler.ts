@@ -1,7 +1,7 @@
 import { intersect } from "@std/collections";
-import { User } from "../../../common/models/User.ts";
+import { db } from "../../../common/kv.ts";
 import { GOOGLE_GDRIVE_SCOPES } from "../../../const.ts";
-import { db } from "../../../kv.ts";
+import { User } from "../../../core/models/User.ts";
 import { Tokens } from "../../../types.ts";
 import { google_authentication_helpers } from "./authentication/helpers.ts";
 import { gClient } from "./g-client.ts";
@@ -18,10 +18,10 @@ export const google_authentication_cb_handler = async (req: Request) => {
   }
 
   const [user] = await Promise.all([
-    db.core.user.findByPrimaryIndex("sub", info.sub).then((res) =>
+    db.user.findByPrimaryIndex("sub", info.sub).then((res) =>
       res?.value || null
     ),
-    db.core.app_session.add({ session: sessionId, sub: info.sub }),
+    db.app_session.add({ session: sessionId, sub: info.sub }),
   ]);
 
   const email = info.email && info.email_verified &&
@@ -56,7 +56,7 @@ export const google_authentication_cb_handler = async (req: Request) => {
     }
     : {};
 
-  await db.core.user.upsertByPrimaryIndex({
+  await db.user.upsertByPrimaryIndex({
     index: ["sub", info.sub],
     set: {
       sub: info.sub,

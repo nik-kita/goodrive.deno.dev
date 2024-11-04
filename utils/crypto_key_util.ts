@@ -6,7 +6,7 @@ import {
   type Payload,
   verify,
 } from "@wok/djwt";
-import { env } from "../env.ts";
+import { Env } from "../common/env.ts";
 
 export class CryptoKeyUtil {
   public static convert_to_crypto_key({
@@ -72,7 +72,7 @@ export class CryptoKeyUtil {
     };
 
     const cryptoPrivateKey = await CryptoKeyUtil.convert_to_crypto_key({
-      pemKey: atob(env[privateKeyPem]),
+      pemKey: atob(Env[privateKeyPem]),
       type: "PRIVATE",
     });
 
@@ -90,7 +90,7 @@ export class CryptoKeyUtil {
   }): Promise<T | null> {
     try {
       const cryptoPublicKey = await CryptoKeyUtil.convert_to_crypto_key({
-        pemKey: atob(env[publicKeyPem]),
+        pemKey: atob(Env[publicKeyPem]),
         type: "PUBLIC",
       });
 

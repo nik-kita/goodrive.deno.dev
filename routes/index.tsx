@@ -1,6 +1,5 @@
 import { type RouteContext } from "$fresh/server.ts";
-import { env } from "../env.ts";
-import { CleanKvButton } from "../islands/clean-kv-button.tsx";
+import { Env } from "../common/env.ts";
 import { google_authentication_sign_out_handler } from "../plugins/kv_oauth/google/authentication/sign-out.ts";
 import { get_session } from "../plugins/kv_oauth/google/get-session.ts";
 
@@ -42,12 +41,12 @@ export default async function (req: Request, _ctx: RouteContext) {
         <legend>Auth</legend>
         <ul>
           <li>
-            <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN}>
+            <a href={Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN}>
               Sign In with Google
             </a>
           </li>
           <li>
-            <a href={env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT}>Sign Out</a>
+            <a href={Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT}>Sign Out</a>
           </li>
         </ul>
       </fieldset>
@@ -56,14 +55,16 @@ export default async function (req: Request, _ctx: RouteContext) {
         <ul>
           {user_storages}
         </ul>
-        <a href={env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
+        <a href={Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
           <button>
             Add New Tiny Storage
           </button>
         </a>
       </fieldset>
       <hr />
-      <CleanKvButton />
+      <form action="/api/dev/clean-kv" method="POST">
+        <input type="submit" value={"drop database"} />
+      </form>
       <details open>
         <summary>session</summary>
         <pre>{JSON.stringify(sessionData, null, 2)}</pre>
