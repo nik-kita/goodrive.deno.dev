@@ -1,7 +1,7 @@
 import { defineRoute } from "$fresh/src/server/defines.ts";
 import { JSX } from "preact";
-import { Env } from "../../common/env.ts";
 import { IndexState } from "../../routes/_middleware.ts";
+import { deps } from "./Blocks.tsx";
 import { HomeHeader } from "./Header.tsx";
 import { parse_user_data } from "./parse-user-data.ts";
 
@@ -21,72 +21,28 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
 
       if (is_google_drive_enabled) {
         Menu = (
-          <ul>
-            <li>
-              <details>
-                <summary>Access token</summary>
-                <pre>{accesses[0]}</pre>
-              </details>
-              <details>
-                <summary>Refresh token</summary>
-                <pre>{refresh}</pre>
-              </details>
-            </li>
-            <li>
-              <button>
-                Issue extra access token
-              </button>
-            </li>
-            <li>
-              <button>Revoke tokens</button>
-            </li>
-          </ul>
+          <deps.Menu_for_email_enabled_google_drive
+            accesses={accesses}
+            refresh={refresh}
+          />
         );
       } else if (is_g_drive_authorized) {
         Menu = (
-          <ul>
-            <li>
-              <details>
-                <summary>
-                  Enable API
-                </summary>
-                <p>
-                  generate access and refresh tokens pair
-                </p>
-                <form method="post" action="/api/auth/login">
-                  <input type="hidden" name="email" value={email!} />
-                  <input type="hidden" name="sub" value={sub!} />
-                  <input
-                    type="hidden"
-                    name="session_id"
-                    value={session!.session_id}
-                  />
-                  <input type="submit" />
-                </form>
-              </details>
-            </li>
-            <li>
-              <button>Revoke Google Drive authorization</button>
-            </li>
-          </ul>
+          <deps.Menu_for_email_with_authorized_but_not_enabled_g_drive
+            {...{
+              email: email!,
+              sub: sub!,
+              session_id: session!.session_id!,
+            }}
+          />
         );
       } else {
-        Menu = (
-          <ul>
-            <li>
-              <a href={Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
-                <button>
-                  Authorize Google Drive
-                </button>
-              </a>
-            </li>
-          </ul>
-        );
+        Menu = <deps.Menu_for_email_with_unauthorized_g_drive />;
       }
 
       return (
-        <li>
-          <h2>{email}</h2>
+        <li key={email}>
+          <h4>{email}</h4>
           {Menu}
         </li>
       );
@@ -101,11 +57,7 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
         <ul>
           {user_storages}
         </ul>
-        <a href={Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
-          <button>
-            Add New Tiny Storage
-          </button>
-        </a>
+        <deps.Button_connect_new_g_drive />
       </fieldset>
     </>
   );
