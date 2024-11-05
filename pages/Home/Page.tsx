@@ -93,12 +93,7 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
   );
 
   return (
-    <div>
-      {!!session?.user || (
-        <a href={Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN}>
-          Sign In with Google
-        </a>
-      )}
+    <>
       <fieldset>
         <legend>
           <h1>Welcome!</h1>
@@ -112,9 +107,6 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
           </button>
         </a>
       </fieldset>
-      {!!session?.user && (
-        <a href={Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT}>Sign Out</a>
-      )}
-    </div>
+    </>
   );
 });
