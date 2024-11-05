@@ -2,6 +2,7 @@ import { defineRoute } from "$fresh/src/server/defines.ts";
 import { JSX } from "preact";
 import { Env } from "../../common/env.ts";
 import { IndexState } from "../../routes/_middleware.ts";
+import { HomeHeader } from "./Header.tsx";
 import { parse_user_data } from "./parse-user-data.ts";
 
 export const HomePage = defineRoute<IndexState>(async (_req, {
@@ -94,10 +95,9 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
 
   return (
     <>
+      <HomeHeader />
       <fieldset>
-        <legend>
-          <h1>Welcome!</h1>
-        </legend>
+        <legend>Your Connected Google Drives</legend>
         <ul>
           {user_storages}
         </ul>
