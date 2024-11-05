@@ -6,7 +6,7 @@ import {
   type Payload,
   verify,
 } from "@wok/djwt";
-import { Env } from "../common/env.ts";
+import { Env } from "../env.ts";
 
 export class CryptoKeyUtil {
   public static convert_to_crypto_key({

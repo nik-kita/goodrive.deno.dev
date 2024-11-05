@@ -72,8 +72,6 @@ export const google_authentication_cb_handler = async (req: Request) => {
     update: {
       google_drive_authorization,
     },
-  }, {
-    strategy: "merge",
   });
 
   return response;

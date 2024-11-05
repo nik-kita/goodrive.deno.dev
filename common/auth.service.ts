@@ -1,13 +1,33 @@
-import { CryptoKeyUtil } from "../utils/crypto_key_util.ts";
+import { CryptoKeyUtil } from "./utils/crypto_key_util.ts";
 
 export const AuthService = {
   generate_token_pairs,
+  verify_access_token,
+  verify_refresh_token,
 };
 
 const issuer = "demo.only";
 
+async function verify_access_token(access: string) {
+  const payload = await CryptoKeyUtil.verify_jwt({
+    token: access,
+    publicKeyPem: "ACCESS_TOKEN_PUBLIC_KEY",
+  });
+
+  return payload;
+}
+
+async function verify_refresh_token(refresh: string) {
+  const payload = await CryptoKeyUtil.verify_jwt({
+    token: refresh,
+    publicKeyPem: "REFRESH_TOKEN_PUBLIC_KEY",
+  });
+
+  return payload;
+}
+
 async function generate_token_pairs(sub: string) {
-  const [access_token, refresh_token] = await Promise.all([
+  const [access, refresh] = await Promise.all([
     CryptoKeyUtil.sign_jwt({
       issuer,
       user_id: sub,
@@ -22,5 +42,9 @@ async function generate_token_pairs(sub: string) {
     }),
   ]);
 
-  return { access_token, refresh_token, token_type: "bearer" };
+  return {
+    access_token: access.token,
+    refresh_token: refresh.token,
+    token_type: "bearer",
+  };
 }
