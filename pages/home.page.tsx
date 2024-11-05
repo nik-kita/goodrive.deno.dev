@@ -1,8 +1,8 @@
 import { defineRoute } from "$fresh/src/server/defines.ts";
 import { Env } from "../common/env.ts";
-import { AppState } from "../routes/_middleware.ts";
+import { IndexState } from "../routes/_middleware.ts";
 
-export const HomePage = defineRoute<AppState>(async (_req, {
+export const HomePage = defineRoute<IndexState>(async (_req, {
   state: {
     session,
   },

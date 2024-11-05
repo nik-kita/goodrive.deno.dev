@@ -1,8 +1,8 @@
 import type { Handlers } from "$fresh/server.ts";
-import { kv } from "../../../../common/kv.ts";
-import { AppState } from "../../../_middleware.ts";
+import { kv } from "../../../common/kv.ts";
+import { ApiState } from "../_middleware.ts";
 
-export const handler: Handlers<unknown, AppState> = {
+export const handler: Handlers<unknown, ApiState> = {
   DELETE: async () => {
     await drop_db();
 
@@ -21,10 +21,7 @@ export const handler: Handlers<unknown, AppState> = {
 };
 
 async function drop_db() {
-  console.log(await kv.tree());
   for await (const entry of kv.list({ prefix: [] })) {
     await kv.delete(entry.key);
-    console.log(`Deleted key: ${entry.key}`);
   }
-  console.log("All data deleted from Deno KV.");
 }
