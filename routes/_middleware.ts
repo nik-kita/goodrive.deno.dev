@@ -1,28 +1,56 @@
-import { type Handler } from "$fresh/server.ts";
+import { FreshContext } from "$fresh/server.ts";
+import { google_authentication_sign_out_handler } from "../plugins/kv_oauth/google/authentication/sign-out.ts";
+import { get_session } from "../plugins/kv_oauth/google/get-session.ts";
 
-export type AppState = {
+export const handler = [
+  attach_session_to_context,
+  attach_request_origin_to_context,
+];
+export type AppState = _StateWithOrigin & _StateWithSession;
+
+type _StateWithOrigin = {
   origin: string;
 };
 
-const attach_request_origin: Handler<unknown, AppState> = (
-  req,
-  c,
-) => {
-  console.group("middleware: attach_request_origin");
-  if (c.destination !== "route" || c.remoteAddr.transport !== "tcp") {
-    console.groupEnd();
-    return c.next();
+async function attach_request_origin_to_context(
+  req: Request,
+  c: FreshContext<_StateWithOrigin>,
+) {
+  if (
+    c.route.startsWith("/api") && c.destination === "route" &&
+    c.remoteAddr.transport === "tcp"
+  ) {
+    return await c.next();
   }
 
   const origin = req.headers.get("origin") || req.headers.get("referer") || "/";
 
   c.state.origin = origin;
 
-  console.log(origin);
-  console.groupEnd();
-  return c.next();
+  return await c.next();
+}
+
+type _StateWithSession = {
+  session: Required<Awaited<ReturnType<typeof get_session>>> | null;
 };
 
-export const handler = [
-  attach_request_origin,
-];
+async function attach_session_to_context(
+  req: Request,
+  c: FreshContext<_StateWithSession>,
+) {
+  if (c.route.startsWith("/api") || c.destination !== "route") {
+    return await c.next();
+  }
+
+  const sessionData = await get_session(req);
+
+  if (!sessionData) {
+    c.state.session = null;
+  } else if (sessionData.user) {
+    c.state.session = sessionData;
+  } else {
+    return await google_authentication_sign_out_handler(req);
+  }
+
+  return await c.next();
+}
