@@ -10,7 +10,7 @@ import * as $api_middleware from "./routes/api/_middleware.ts";
 import * as $api_auth_refresh from "./routes/api/auth/refresh.ts";
 import * as $api_dev_clean_kv from "./routes/api/dev/clean-kv.ts";
 import * as $index from "./routes/index.tsx";
-
+import * as $GoogleDriveItemCard from "./islands/GoogleDriveItemCard.tsx";
 import type { Manifest } from "$fresh/server.ts";
 
 const manifest = {
@@ -24,7 +24,9 @@ const manifest = {
     "./routes/api/dev/clean-kv.ts": $api_dev_clean_kv,
     "./routes/index.tsx": $index,
   },
-  islands: {},
+  islands: {
+    "./islands/GoogleDriveItemCard.tsx": $GoogleDriveItemCard,
+  },
   baseUrl: import.meta.url,
 } satisfies Manifest;
 

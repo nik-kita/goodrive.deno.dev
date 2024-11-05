@@ -1,33 +1,26 @@
 import { defineRoute } from "$fresh/src/server/defines.ts";
 import { Env } from "../common/env.ts";
+import { GoogleDriveItemCard } from "../islands/GoogleDriveItemCard.tsx";
 import { IndexState } from "../routes/_middleware.ts";
 
-export const HomePage = defineRoute<IndexState>(async (_req, {
+export const HomePage = defineRoute<IndexState>((_req, {
   state: {
     session,
   },
 }) => {
-  const data = await Array.fromAsync(
-    await Deno.openKv().then((kv) => kv.list({ prefix: [] })),
-  );
-  const dbData = Object.fromEntries(data.map((v) => {
-    return [v.key.join("/"), v.value];
-  }));
+  console.log(session);
+  const user_g_drive_authorization =
+    session?.user?.google_drive_authorization || {};
 
   const user_storages = Object.entries(
-    session?.user?.google_drive_authorization || {},
+    user_g_drive_authorization,
   ).map(([email, tokens]) => {
+    const is_google_drive_authorized =
+      !!(tokens?.access_token && tokens.refresh_token);
     return (
-      <details>
-        <summary>{email}</summary>
-        <input
-          {...{
-            type: "checkbox",
-            disabled: true,
-            checked: !!(tokens?.access_token && tokens.refresh_token),
-          }}
-        />
-      </details>
+      <GoogleDriveItemCard
+        {...{ is_google_drive_authorized, email, key: email }}
+      />
     );
   });
 
@@ -58,18 +51,6 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
           </button>
         </a>
       </fieldset>
-      <hr />
-      <form action="/api/dev/clean-kv" method="POST">
-        <input type="submit" value={"drop database"} />
-      </form>
-      <details open>
-        <summary>session</summary>
-        <pre>{JSON.stringify(session, null, 2)}</pre>
-      </details>
-      <details open>
-        <summary>kv</summary>
-        <pre>{JSON.stringify(dbData, null, 2)}</pre>
-      </details>
     </div>
   );
 });

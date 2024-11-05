@@ -15,7 +15,7 @@ async function attach_session_to_context(
   req: Request,
   c: FreshContext<_StateWithSession>,
 ) {
-  if (c.destination === "route" && c.route.startsWith("/api")) {
+  if (c.destination === "route" && !c.route.startsWith("/api")) {
     const sessionData = await get_session(req);
 
     if (!sessionData) {

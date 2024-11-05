@@ -1,8 +1,8 @@
 import { intersect } from "@std/collections";
 import { db } from "../../../common/kv.ts";
+import { Tokens } from "../../../common/types.ts";
 import { GOOGLE_GDRIVE_SCOPES } from "../../../const.ts";
 import { User } from "../../../core/models/User.ts";
-import { Tokens } from "../../../common/types.ts";
 import { google_authentication_helpers } from "./authentication/helpers.ts";
 import { gClient } from "./g-client.ts";
 import { google_g_drive_authorization_sign_in_handler } from "./g-drive-authorization/sign-in.ts";
@@ -45,16 +45,23 @@ export const google_authentication_cb_handler = async (req: Request) => {
     return redirect_to_g_drive_sign_in;
   }
 
-  const google_drive_authorization = is_g_drive_scopes_present
-    ? {
-      ...(email && {
-        [email]: {
-          access_token: tokens.accessToken,
-          ...(tokens.refreshToken && { refresh_token: tokens.refreshToken }),
-        },
-      }),
-    }
-    : {};
+  const google_drive_authorization_for_current_email =
+    (is_g_drive_scopes_present &&
+        email)
+      ? {
+        access_token: tokens.accessToken,
+        ...(tokens.refreshToken && { refresh_token: tokens.refreshToken }),
+      }
+      : undefined;
+  const google_drive_authorization = {
+    ...user?.google_drive_authorization,
+    ...(google_drive_authorization_for_current_email && {
+      [email!]: {
+        ...user?.google_drive_authorization[email!],
+        ...google_drive_authorization_for_current_email,
+      },
+    }),
+  };
 
   await db.user.upsertByPrimaryIndex({
     index: ["sub", info.sub],
@@ -63,7 +70,7 @@ export const google_authentication_cb_handler = async (req: Request) => {
       google_drive_authorization,
     },
     update: {
-      ...(is_g_drive_scopes_present && { google_drive_authorization }),
+      google_drive_authorization,
     },
   }, {
     strategy: "merge",
