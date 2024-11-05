@@ -13,8 +13,7 @@ export const handler: Handlers<unknown, ApiState> = {
       sub: body.get("sub")!,
       session_id: body.get("session_id")!,
     };
-    console.log(payload, "payload");
-    await void handle_login(payload);
+    void await handle_login(payload);
 
     return new Response(null, {
       status: 302,
@@ -53,8 +52,8 @@ async function handle_login(options: {
   }
   const token_pair = await AuthService.generate_token_pairs(sub);
   const newApiTokenPair = {
-    access_tokens: [token_pair.access_token],
-    refresh_token: token_pair.refresh_token,
+    accesses: [token_pair.access_token],
+    refresh: token_pair.refresh_token,
     email,
     sub,
   };
@@ -62,11 +61,9 @@ async function handle_login(options: {
     index: ["email", email],
     set: newApiTokenPair,
     update: {
-      access_tokens: newApiTokenPair.access_tokens,
+      accesses: newApiTokenPair.accesses,
     },
   }, { strategy: "merge", mergeOptions: { arrays: "merge" } });
-
-  console.log(token_pair, "token_pair");
 
   return token_pair;
 }
