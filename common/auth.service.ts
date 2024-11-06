@@ -26,18 +26,25 @@ async function verify_refresh_token(refresh: string) {
   return payload;
 }
 
-async function generate_token_pairs(sub: string) {
+async function generate_token_pairs(sub: string, options: {
+  access_expires_after: number;
+  refresh_expires_after: number;
+}) {
+  const {
+    access_expires_after,
+    refresh_expires_after,
+  } = options;
   const [access, refresh] = await Promise.all([
     CryptoKeyUtil.sign_jwt({
       issuer,
       user_id: sub,
-      expiresIn: new Date(Date.now() + 1000 * 60 * 15),
+      expiresIn: new Date(Date.now() + access_expires_after),
       privateKeyPem: "ACCESS_TOKEN_PRIVATE_KEY",
     }),
     CryptoKeyUtil.sign_jwt({
       issuer,
       user_id: sub,
-      expiresIn: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      expiresIn: new Date(Date.now() + refresh_expires_after),
       privateKeyPem: "REFRESH_TOKEN_PRIVATE_KEY",
     }),
   ]);

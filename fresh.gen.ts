@@ -9,7 +9,6 @@ import * as $_layout from "./routes/_layout.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
 import * as $api_middleware from "./routes/api/_middleware.ts";
 import * as $api_auth_login from "./routes/api/auth/login.ts";
-import * as $api_auth_refresh from "./routes/api/auth/refresh.ts";
 import * as $api_dev_clean_kv from "./routes/api/dev/clean-kv.ts";
 import * as $index from "./routes/index.tsx";
 
@@ -24,7 +23,6 @@ const manifest = {
     "./routes/_middleware.ts": $_middleware,
     "./routes/api/_middleware.ts": $api_middleware,
     "./routes/api/auth/login.ts": $api_auth_login,
-    "./routes/api/auth/refresh.ts": $api_auth_refresh,
     "./routes/api/dev/clean-kv.ts": $api_dev_clean_kv,
     "./routes/index.tsx": $index,
   },

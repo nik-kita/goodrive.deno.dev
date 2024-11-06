@@ -1,11 +1,11 @@
 import { Handlers } from "$fresh/server.ts";
 import { AuthService } from "../../../common/auth.service.ts";
 import { db } from "../../../common/kv.ts";
+import { RefreshToken } from "../../../core/models/RefreshToken.ts";
 import { ApiState } from "../_middleware.ts";
 
 export const handler: Handlers<unknown, ApiState> = {
   POST: async (req, ctx) => {
-    console.log("login");
     const data = await req.text();
     const body = new URLSearchParams(data);
     const payload = {
@@ -28,11 +28,19 @@ async function handle_login(options: {
   email: string;
   sub: string;
   session_id: string;
+  name?: string;
+  description?: string;
+  refresh_expires_after?: number;
+  access_expires_after?: number;
 }) {
   const {
     email,
     sub,
     session_id,
+    access_expires_after = 60 * 1000,
+    refresh_expires_after = 60 * 60 * 24 * 30 * 1000,
+    description,
+    name,
   } = options;
   const session = await db.app_session.findByPrimaryIndex(
     "session",
@@ -50,20 +58,31 @@ async function handle_login(options: {
   if (!user.google_drive_authorization[email]) {
     return new Response("Forbidden", { status: 403 });
   }
-  const token_pair = await AuthService.generate_token_pairs(sub);
-  const newApiTokenPair = {
-    accesses: [token_pair.access_token],
-    refresh: token_pair.refresh_token,
-    email,
-    sub,
-  };
-  await db.api_token_pair.upsertByPrimaryIndex({
-    index: ["email", email],
-    set: newApiTokenPair,
-    update: {
-      accesses: newApiTokenPair.accesses,
-    },
-  }, { strategy: "merge", mergeOptions: { arrays: "merge" } });
+  const token_pair = await AuthService.generate_token_pairs(sub, {
+    access_expires_after,
+    refresh_expires_after,
+  });
+  const now = new Date();
+  const generated_name = RefreshToken.generate_name({ sub, name });
+
+  void await Promise.all([
+    db.refresh_token.add({
+      api_refresh: token_pair.refresh_token,
+      email,
+      sub,
+      expiration_time: refresh_expires_after,
+      description,
+      name: generated_name,
+      created_at: now,
+      updated_at: now,
+    }),
+    db.access_token.add({
+      api_access: token_pair.access_token,
+      by_api_refresh: token_pair.refresh_token,
+      email,
+      sub,
+    }),
+  ]);
 
   return token_pair;
 }

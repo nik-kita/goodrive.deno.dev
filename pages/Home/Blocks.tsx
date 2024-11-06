@@ -1,4 +1,5 @@
 import { Env } from "../../common/env.ts";
+import { RefreshToken } from "../../core/models/RefreshToken.ts";
 
 export const deps = {
   Button_connect_new_g_drive,
@@ -18,38 +19,18 @@ function Button_connect_new_g_drive() {
 }
 
 function Menu_for_email_enabled_google_drive(props: {
-  accesses: string[];
-  refresh: string;
+  api_info: RefreshToken[];
 }) {
   return (
-    <ul>
-      <li>
-        <details>
-          <summary>refresh token:</summary>
-          <pre>{props.refresh}</pre>
-        </details>
-        <details>
-          <summary>active access tokens list:</summary>
-          <ul>
-            {props.accesses.map((a) => {
-              return (
-                <li>
-                  <pre>{a}</pre>
-                </li>
-              );
-            })}
-          </ul>
-        </details>
-      </li>
-      <li>
-        <button>
-          Issue extra access token
-        </button>
-      </li>
-      <li>
-        <button>Revoke tokens</button>
-      </li>
-    </ul>
+    <ol>
+      {props.api_info.map((info) => {
+        return (
+          <li>
+            <pre>{JSON.stringify(info, null, 2)}</pre>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
