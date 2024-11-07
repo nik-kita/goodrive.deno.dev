@@ -67,6 +67,9 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
         </ul>
         <deps.Button_connect_new_g_drive />
       </fieldset>
+      <a href="/demo">
+        <h2>Try Demo</h2>
+      </a>
     </>
   );
 });

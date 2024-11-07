@@ -28,24 +28,22 @@ function Menu_for_email_enabled_google_drive(props: {
         return (
           <li>
             <h4>
-              {info.name}
+              {info.name.split("::").shift()}
             </h4>
             {info.description && (
               <p>
                 {info.description}
               </p>
             )}
-            <details>
-              <summary>
-                {info.api_key.substring(0, 4) +
-                  "*".repeat(info.api_key.length - 4)}
-              </summary>
-              <ClipBoard text_container_id="api-key-to-copy">
-                <p id="api-key-to-copy" style={{ display: "none" }}>
-                  {info.api_key}
-                </p>
-              </ClipBoard>
-            </details>
+            <pre>
+            {info.api_key.substring(0, 4) +
+              "*".repeat(info.api_key.length - 4)}
+            </pre>
+            <ClipBoard text_container_id="api-key-to-copy">
+              <p id="api-key-to-copy" style={{ display: "none" }}>
+                {info.api_key}
+              </p>
+            </ClipBoard>
           </li>
         );
       })}
