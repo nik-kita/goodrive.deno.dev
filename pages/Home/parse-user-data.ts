@@ -1,6 +1,6 @@
 import { deepMerge, mapEntries } from "@std/collections";
 import { db } from "../../common/kv.ts";
-import { RefreshToken } from "../../core/models/RefreshToken.ts";
+import { ApiKey } from "../../core/models/ApiKey.ts";
 import { User_google_drive_authorization } from "../../core/models/User.ts";
 import { IndexState } from "../../routes/_middleware.ts";
 
@@ -10,7 +10,7 @@ export async function parse_user_data(
     null
   >,
 ) {
-  const apiRefreshes = await db.refresh_token.findBySecondaryIndex(
+  const apiRefreshes = await db.api_key.findBySecondaryIndex(
     "sub",
     sub,
   ).then((res) => res.result.map((r) => r.value));
@@ -23,11 +23,11 @@ export async function parse_user_data(
       return deepMerge(acc, { [t.email]: { api_info: [t] } }, {
         arrays: "merge",
       });
-    }, {} as Record<string, { api_info: RefreshToken[] }>),
+    }, {} as Record<string, { api_info: ApiKey[] }>),
   ) as Record<
     string,
     Partial<
-      User_google_drive_authorization & { api_info: RefreshToken[] } & {
+      User_google_drive_authorization & { api_info: ApiKey[] } & {
         sub: string;
         email: string;
       }

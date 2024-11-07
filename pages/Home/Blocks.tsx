@@ -1,5 +1,6 @@
 import { Env } from "../../common/env.ts";
-import { RefreshToken } from "../../core/models/RefreshToken.ts";
+import type { ApiKey } from "../../core/models/ApiKey.ts";
+import { ClipBoard } from "../../islands/ClipBoard.tsx";
 
 export const deps = {
   Button_connect_new_g_drive,
@@ -19,14 +20,32 @@ function Button_connect_new_g_drive() {
 }
 
 function Menu_for_email_enabled_google_drive(props: {
-  api_info: RefreshToken[];
+  api_info: ApiKey[];
 }) {
   return (
     <ol>
       {props.api_info.map((info) => {
         return (
           <li>
-            <pre>{JSON.stringify(info, null, 2)}</pre>
+            <h4>
+              {info.name}
+            </h4>
+            {info.description && (
+              <p>
+                {info.description}
+              </p>
+            )}
+            <details>
+              <summary>
+                {info.api_key.substring(0, 4) +
+                  "*".repeat(info.api_key.length - 4)}
+              </summary>
+              <ClipBoard text_container_id="api-key-to-copy">
+                <p id="api-key-to-copy" style={{ display: "none" }}>
+                  {info.api_key}
+                </p>
+              </ClipBoard>
+            </details>
           </li>
         );
       })}

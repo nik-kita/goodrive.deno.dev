@@ -24,7 +24,7 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
     ) => {
       const is_g_drive_authorized = refresh_token && access_token;
       const is_google_drive_enabled = is_g_drive_authorized &&
-        api_info?.some((info) => info.api_refresh);
+        api_info?.some((info) => info.api_key);
 
       let Menu: JSX.Element;
 

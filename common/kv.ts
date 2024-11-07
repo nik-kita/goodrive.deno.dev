@@ -1,9 +1,8 @@
 // @ts-types='jsr:@olli/kvdex@1'
 import { collection, DenoKv, kvdex } from "@olli/kvdex";
 import { openKvToolbox } from "jsr:@kitsonk/kv-toolbox";
-import { AccessToken } from "../core/models/AccessToken.ts";
 import { AppSession } from "../core/models/AppSession.ts";
-import { RefreshToken } from "../core/models/RefreshToken.ts";
+import { ApiKey } from "../core/models/ApiKey.ts";
 import { User } from "../core/models/User.ts";
 
 export const kv = await openKvToolbox({});
@@ -19,20 +18,12 @@ export const db = kvdex(kv as unknown as DenoKv, {
       sub: "primary",
     },
   }),
-  refresh_token: collection(RefreshToken, {
+  api_key: collection(ApiKey, {
     indices: {
-      refresh_token: "primary",
+      api_key: "primary",
       name: "primary",
       sub: "secondary",
       email: "secondary",
-    },
-  }),
-  access_token: collection(AccessToken, {
-    indices: {
-      access_token: "primary",
-      email: "secondary",
-      sub: "secondary",
-      by_refresh_token: "secondary",
     },
   }),
 });
