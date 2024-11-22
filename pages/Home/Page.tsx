@@ -4,6 +4,7 @@ import { IndexState } from "../../routes/_middleware.ts";
 import { deps } from "./Blocks.tsx";
 import { HomeHeader } from "./Header.tsx";
 import { parse_user_data } from "./parse-user-data.ts";
+import { H2, H4, Ul } from "@/components/ui/Typography.tsx";
 
 export const HomePage = defineRoute<IndexState>(async (_req, {
   state: {
@@ -50,7 +51,7 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
 
       return (
         <li key={email}>
-          <h4>{email}</h4>
+          <H4>{email}</H4>
           {Menu}
         </li>
       );
@@ -62,13 +63,13 @@ export const HomePage = defineRoute<IndexState>(async (_req, {
       <HomeHeader />
       <fieldset>
         <legend>Your Connected Google Drives</legend>
-        <ul>
+        <Ul>
           {user_storages}
-        </ul>
+        </Ul>
         <deps.Button_connect_new_g_drive />
       </fieldset>
       <a href="/demo">
-        <h2>Try Demo</h2>
+        <H2>Try Demo</H2>
       </a>
     </>
   );

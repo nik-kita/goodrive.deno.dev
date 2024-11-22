@@ -18,7 +18,11 @@
   },
   "exclude": ["**/_fresh/*"],
   "imports": {
-    "@/*": "./*",
+    "react": "npm:preact/compat",
+    "react-dom/test-utils": "npm:preact/test-utils",
+    "react-dom": "npm:preact/compat",
+    "react/jsx-runtime": "npm:preact/jsx-runtime",
+    "@/": "./",
     "$fresh/": "https://deno.land/x/fresh@1.7.3/",
     "$std/": "https://deno.land/std@0.216.0/",
     "@deno/kv-oauth": "jsr:@deno/kv-oauth@^0.11.0",
@@ -26,6 +30,7 @@
     "@olli/kvdex": "jsr:@olli/kvdex@^2.1.2",
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
+    "@radix-ui/react-slot": "npm:@radix-ui/react-slot@^1.1.0",
     "@std/collections": "jsr:@std/collections@^1.0.9",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
     "@std/io": "jsr:@std/io@^0.225.0",
@@ -47,8 +52,7 @@
   },
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
-    "types": ["types.d.ts"]
+    "jsxImportSource": "preact"
   },
   "deploy": {
     "project": "4179940f-93b2-46ec-8c0f-d78dd60ce616",

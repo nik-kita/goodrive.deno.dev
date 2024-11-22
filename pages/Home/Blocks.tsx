@@ -1,6 +1,8 @@
-import { Env } from "../../common/env.ts";
+import { Env } from "@/common/env.ts";
+import { Button } from "@/components/ui/Button.tsx";
 import type { ApiKey } from "../../core/models/ApiKey.ts";
 import { ClipBoard } from "../../islands/ClipBoard.tsx";
+import { H4, P, Ul } from "@/components/ui/Typography.tsx";
 
 export const deps = {
   Button_connect_new_g_drive,
@@ -12,9 +14,9 @@ export const deps = {
 function Button_connect_new_g_drive() {
   return (
     <a href={Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
-      <button>
+      <Button>
         Connect New or Switch to Another
-      </button>
+      </Button>
     </a>
   );
 }
@@ -26,25 +28,25 @@ function Menu_for_email_enabled_google_drive(props: {
     <ol>
       {props.api_info.map((info) => {
         return (
-          <li>
-            <h4>
+          <Ul>
+            <H4>
               {info.name.split("::").shift()}
-            </h4>
+            </H4>
             {info.description && (
-              <p>
+              <P>
                 {info.description}
-              </p>
+              </P>
             )}
-            <pre>
+            <pre id="">
             {info.api_key.substring(0, 4) +
               "*".repeat(info.api_key.length - 4)}
             </pre>
             <ClipBoard text_container_id="api-key-to-copy">
-              <p id="api-key-to-copy" style={{ display: "none" }}>
+              <P id="api-key-to-copy" style={{ display: "none" }}>
                 {info.api_key}
-              </p>
+              </P>
             </ClipBoard>
-          </li>
+          </Ul>
         );
       })}
     </ol>
@@ -56,9 +58,9 @@ function Menu_for_email_with_unauthorized_g_drive() {
     <ul>
       <li>
         <a href={Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE}>
-          <button>
+          <Button>
             Authorize Google Drive
-          </button>
+          </Button>
         </a>
       </li>
     </ul>
@@ -73,15 +75,15 @@ function Menu_for_email_with_authorized_but_not_enabled_g_drive(
   }: { email: string; sub: string; session_id: string },
 ) {
   return (
-    <ul>
+    <Ul>
       <li>
         <details>
           <summary>
             Enable API
           </summary>
-          <p>
+          <P>
             generate access and refresh tokens pair
-          </p>
+          </P>
           <form method="post" action="/api/auth/login">
             <input type="hidden" name="email" value={email!} />
             <input type="hidden" name="sub" value={sub!} />
@@ -95,8 +97,8 @@ function Menu_for_email_with_authorized_but_not_enabled_g_drive(
         </details>
       </li>
       <li>
-        <button>Revoke Google Drive authorization</button>
+        <Button>Revoke Google Drive authorization</Button>
       </li>
-    </ul>
+    </Ul>
   );
 }

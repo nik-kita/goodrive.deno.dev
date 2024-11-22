@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button.tsx";
 import type { ComponentChildren } from "preact";
 
 type Props = {
@@ -14,7 +15,7 @@ export function ClipBoard(props: Props) {
   return (
     <>
       {props.children}
-      <button onClick={onClick}>copy</button>
+      <Button onClick={onClick}>copy</Button>
     </>
   );
 }

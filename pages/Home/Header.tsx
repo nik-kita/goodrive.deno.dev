@@ -1,3 +1,5 @@
+import { H1 } from "../../components/ui/Typography.tsx";
+
 export const HomeHeader = () => {
-  return <h1>Welcome!</h1>;
+  return <H1>Welcome!</H1>;
 };

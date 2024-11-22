@@ -1,8 +1,8 @@
 // @ts-types='jsr:@olli/kvdex@1'
 import { collection, DenoKv, kvdex } from "@olli/kvdex";
 import { openKvToolbox } from "jsr:@kitsonk/kv-toolbox";
-import { AppSession } from "../core/models/AppSession.ts";
 import { ApiKey } from "../core/models/ApiKey.ts";
+import { AppSession } from "../core/models/AppSession.ts";
 import { User } from "../core/models/User.ts";
 
 export const kv = await openKvToolbox({});

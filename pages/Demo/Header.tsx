@@ -1,21 +1,23 @@
+import { H2, P } from "@/components/ui/Typography.tsx";
+
 export const DemoHeader = () => {
   return (
     <>
       <a href="/">
-        <h2>Go Home</h2>
+        <H2>Go Home</H2>
       </a>
-      <h2>Demo</h2>
-      <p>
+      <H2>Demo</H2>
+      <P>
         <i>
           {"you should login with google and copy generated api-key (on Home page)"}
         </i>
-      </p>
+      </P>
       <hr />
-      <p>Here you can check your api-key</p>
-      <p>
+      <P>Here you can check your api-key</P>
+      <P>
         All input is represent all ones that you should define in your request
         using form-data.
-      </p>
+      </P>
     </>
   );
 };
