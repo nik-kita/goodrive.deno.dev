@@ -94,12 +94,14 @@ app
         }
       } else if (!bucket) {
         deleteCookie(c, OAUTH_COOKIE_NAME);
+
+        return c.redirect(Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE);
       }
     } else {
       deleteCookie(c, OAUTH_COOKIE_NAME);
     }
 
-    return c.redirect(Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE);
+    return c.redirect(Env.UI_URL);
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT,
