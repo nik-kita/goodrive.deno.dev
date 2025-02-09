@@ -26,7 +26,7 @@ jobs:
 
       - name: Load dotenv from github secrets
         run: >
-          echo ${{env.DOTENV_CONTENT}} > .env
+          echo ${{secrets.DOTENV_CONTENT}} > .env
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
