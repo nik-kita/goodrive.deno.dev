@@ -31,9 +31,9 @@ jobs:
 
       - name: Load dotenv from github secrets
         run: >
-          echo """::add-mask::${{env.DOTENV_CONTENT}}""" > .env
+          echo """${{env.DOTENV_CONTENT}}""" > .env
 
-      - name: Upload to Deno Deploy
+      - name: Upload to Deno Deploy ${{env.PROJECT_NAME}}
         uses: denoland/deployctl@v1
         with:
           project: ${{env.PROJECT_NAME}}
