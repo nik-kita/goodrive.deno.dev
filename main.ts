@@ -2,14 +2,15 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { intersect } from "@std/collections";
 import { deleteCookie } from "hono/cookie";
-import { cors } from "hono/cors";
 import { GOOGLE_GDRIVE_SCOPES, OAUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { GoogleAuth } from "./google-auth.ts";
 import { db } from "./kv.ts";
+import { attach_origin, mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
-app.use(cors());
+
+app.use(mdw_cors());
 app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
@@ -33,6 +34,7 @@ app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     method: "get",
+    middleware: [attach_origin] as const,
     responses: {
       200: {
         description:
@@ -48,60 +50,74 @@ app
       tokens.accessToken,
     );
     const email = info.email;
+    const origin = c.var.origin;
 
-    if (email) {
-      const is_g_drive_scopes_present =
-        intersect(info.scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
-      const bucket = await db.bucket.findByPrimaryIndex("email", email).then((
-        r,
-      ) => r?.value);
-
-      if (is_g_drive_scopes_present) {
-        const access_token = tokens.accessToken;
-        const refresh_token = tokens.refreshToken ||
-          bucket?.google_drive_authorization.refresh_token;
-
-        if (refresh_token) {
-          const google_drive_authorization = {
-            access_token,
-            refresh_token,
-          };
-
-          if (bucket) {
-            await db.bucket.updateByPrimaryIndex("email", email, {
-              google_drive_authorization,
-            });
-          } else {
-            const user_id = crypto.randomUUID();
-
-            await Promise.all([
-              db.user.add({
-                id: user_id,
-              }),
-              db.bucket.add({
-                email,
-                user_id,
-                google_drive_authorization,
-              }),
-              db.app_session.add({
-                user_id,
-                session_id: sessionId,
-              }),
-            ]);
-          }
-        } else {
-          deleteCookie(c, OAUTH_COOKIE_NAME);
-        }
-      } else if (!bucket) {
-        deleteCookie(c, OAUTH_COOKIE_NAME);
-
-        return c.redirect(Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE);
-      }
-    } else {
+    /// 500: we need email in any case
+    if (!email) {
       deleteCookie(c, OAUTH_COOKIE_NAME);
+      return c.redirect(origin);
     }
 
-    return c.redirect(Env.UI_URL);
+    const is_g_drive_scopes_present =
+      intersect(info.scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
+    const bucket = await db.bucket.findByPrimaryIndex("email", email).then((
+      r,
+    ) => r?.value);
+
+    /// 300: new email => redirect obtain google-drive access and refresh tokens
+    if (!is_g_drive_scopes_present && !bucket) {
+      deleteCookie(c, OAUTH_COOKIE_NAME);
+      return c.redirect(Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE);
+    }
+
+    const access_token = tokens.accessToken;
+    const refresh_token = tokens.refreshToken ||
+      bucket?.google_drive_authorization.refresh_token;
+
+    /// 500: we need refresh token in any case
+    if (!refresh_token) {
+      deleteCookie(c, OAUTH_COOKIE_NAME);
+      return c.redirect(origin);
+    }
+
+    /// the first or fresh authoRization with google-drive access
+    if (is_g_drive_scopes_present) {
+      const google_drive_authorization = {
+        access_token,
+        refresh_token,
+      };
+
+      /// fresh => update
+      if (bucket) {
+        await db.bucket.updateByPrimaryIndex("email", email, {
+          google_drive_authorization,
+        });
+      } /// first => create
+      else {
+        const user_id = crypto.randomUUID();
+
+        await Promise.all([
+          db.user.add({
+            id: user_id,
+          }),
+          db.bucket.add({
+            email,
+            user_id,
+            google_drive_authorization,
+          }),
+          db.app_session.add({
+            user_id,
+            session_id: sessionId,
+          }),
+        ]);
+      }
+    } else {
+      /// authenticated user has authorized bucket
+      /// (no code required)
+    }
+
+    /// happy
+    return c.redirect(origin.concat(Env.UI_SUCCESS_LOGIN_ENDPOINT));
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT,
