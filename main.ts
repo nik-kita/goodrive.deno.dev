@@ -5,12 +5,21 @@ import { deleteCookie } from "hono/cookie";
 import { GOOGLE_GDRIVE_SCOPES, OAUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { GoogleAuth } from "./google-auth.ts";
-import { db } from "./kv.ts";
+import { __drop__all__data__in__kv__, db } from "./kv.ts";
 import { mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
 
 app.use(mdw_cors());
+
+if (Env.RUNTIME_ENV !== "prod") {
+  app.get("/_drop-db", async (c) => {
+    await __drop__all__data__in__kv__();
+
+    return c.json({ ok: true });
+  });
+}
+
 app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
@@ -65,8 +74,11 @@ app
 
     /// 300: new email => redirect obtain google-drive access and refresh tokens
     if (!is_g_drive_scopes_present && !bucket) {
-      deleteCookie(c, OAUTH_COOKIE_NAME);
-      return c.redirect(Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE);
+      const success_url = response.headers.get("Location");
+      return c.redirect(
+        Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE +
+        `?success_url=${success_url}`,
+      );
     }
 
     const access_token = tokens.accessToken;
