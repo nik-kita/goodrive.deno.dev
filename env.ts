@@ -10,36 +10,32 @@ export const EnvSchema = z.object({
     .positive()
     .default(3000)
     .describe("Port to run the API on"),
-  API_URL: z
+  API_HOST: z
     .string()
-    .default("http://localhost:3000")
-    .describe("Url by which the API is accessible"),
-  UI_SUCCESS_LOGIN_ENDPOINT: z
-    .string()
-    .describe(
-      "The endpoint where user will be redirected after success sing-in",
-    )
-    .default("/dashbord"),
+    .default("http://localhost"),
   UI_URL: z
     .string()
-    .optional()
-    .describe("Url by which the UI is accessible (can be dynamic)"),
-  API_ENDPOINT_AUTH_GOOGLE_SIGNIN: z.string().default("/api/auth/google-email")
-    .describe("Google OAuth Signin Endpoint"),
+    .optional(),
+  API_ENDPOINT_AUTH_GOOGLE_SIGNIN: z.string().default("/api/auth/google-email"),
   API_ENDPOINT_AUTH_GOOGLE_SIGNOUT: z.string().default(
     "/api/auth/google-signout",
-  )
-    .describe("Google OAuth Signout Endpoint"),
+  ),
   API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE: z.string().default(
     "/api/auth/google-drive",
   ),
   API_ENDPOINT_AUTH_CALLBACK_GOOGLE: z
     .string()
     .regex(/google-callback/)
-    .default("/api/auth/google-callback")
-    .describe("Google OAuth Callback URL"),
-  GOOGLE_CLIENT_ID: z.string().describe("Google OAuth Client ID"),
-  GOOGLE_CLIENT_SECRET: z.string().describe("Google OAuth Client Secret"),
+    .default("/api/auth/google-callback"),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
+}).transform((input) => {
+  return {
+    ...input,
+    API_URL: input.API_HOST.match("http://localhost")
+      ? `${input.API_HOST}:${input.API_PORT}`
+      : input.API_HOST,
+  };
 }).superRefine((input, ctx) => {
   if (input.RUNTIME_ENV === "prod") {
     // deno-lint-ignore no-inner-declarations

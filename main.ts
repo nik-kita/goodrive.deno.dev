@@ -6,7 +6,7 @@ import { GOOGLE_GDRIVE_SCOPES, OAUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { GoogleAuth } from "./google-auth.ts";
 import { db } from "./kv.ts";
-import { attach_origin, mdw_cors } from "./mdw.ts";
+import { mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
 
@@ -34,7 +34,6 @@ app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     method: "get",
-    middleware: [attach_origin] as const,
     responses: {
       200: {
         description:
@@ -45,17 +44,17 @@ app
     const {
       sessionId,
       tokens,
+      response,
     } = await GoogleAuth.handle_cb(c.req.raw);
     const info = await GoogleAuth.oauth2_client.getTokenInfo(
       tokens.accessToken,
     );
     const email = info.email;
-    const origin = c.var.origin;
 
     /// 500: we need email in any case
     if (!email) {
       deleteCookie(c, OAUTH_COOKIE_NAME);
-      return c.redirect(origin);
+      return response;
     }
 
     const is_g_drive_scopes_present =
@@ -77,7 +76,7 @@ app
     /// 500: we need refresh token in any case
     if (!refresh_token) {
       deleteCookie(c, OAUTH_COOKIE_NAME);
-      return c.redirect(origin);
+      return response;
     }
 
     /// the first or fresh authoRization with google-drive access
@@ -117,7 +116,7 @@ app
     }
 
     /// happy
-    return c.redirect(origin.concat(Env.UI_SUCCESS_LOGIN_ENDPOINT));
+    return response;
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT,
