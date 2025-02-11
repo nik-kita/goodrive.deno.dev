@@ -5,16 +5,18 @@ import { Env } from "./env.ts";
 export const mdw_cors = () => {
   if (Env.RUNTIME_ENV === "prod") {
     return cors({ origin: Env.UI_URL! });
+  } else if (Env.RUNTIME_ENV === "stage") {
+    return cors({ origin: "localhost" });
   }
 
   return cors();
 };
 
-export const attach_origin = createMiddleware<{
+export const attach_referer = createMiddleware<{
   Variables: {
-    origin: string;
+    referer?: string;
   };
 }>((c, next) => {
-  c.set("origin", new URL(c.req.raw.url).origin);
+  c.set("referer", c.req.header("referer"));
   return next();
 });
