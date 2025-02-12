@@ -2,10 +2,12 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { intersect } from "@std/collections";
 import { deleteCookie } from "hono/cookie";
+import { HTTPException } from "hono/http-exception";
+import { z } from "zod";
 import { GOOGLE_GDRIVE_SCOPES, OAUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { GoogleAuth } from "./google-auth.ts";
-import { __drop__all__data__in__kv__, db } from "./kv.ts";
+import { __drop__all__data__in__kv__, db, Profile } from "./kv.ts";
 import { mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
@@ -116,6 +118,7 @@ app
       await db.ghost.add({
         success_url_with_session_id,
         data: {
+          info,
           success_url,
           access_token: tokens.accessToken,
           email: email!, /// ((!email && !is_gdrive) || !is_gdrive) => email!
@@ -199,9 +202,15 @@ app
 
       /// fresh => update
       if (bucket) {
-        await db.bucket.updateByPrimaryIndex("email", _email, {
-          google_drive_authorization,
-        });
+        await Promise.all([
+          db.bucket.updateByPrimaryIndex("email", _email, {
+            google_drive_authorization,
+          }),
+          typeof emailOrData === "object" &&
+          db.profile.updateByPrimaryIndex("email", _email, {
+            info: emailOrData,
+          }),
+        ]);
       } /// first => create
       else {
         const user_id = crypto.randomUUID();
@@ -219,6 +228,11 @@ app
             user_id,
             session_id: sessionId,
           }),
+          db.profile.add({
+            email: _email,
+            user_id,
+            info,
+          }),
         ]);
       }
     } else {
@@ -235,6 +249,47 @@ app
     deleteCookie(c, OAUTH_COOKIE_NAME);
 
     return response;
+  })
+  .openapi({
+    path: "/api/auth/whoami",
+    method: "get",
+    responses: {
+      200: {
+        description: `Remember who you are`,
+        content: {
+          "application/json": {
+            schema: z.object({
+              profiles: z.array(Profile.partial()),
+            }),
+          },
+        },
+      },
+    },
+  }, async (c) => {
+    const session_id = await GoogleAuth.get_session_id(c.req.raw);
+
+    if (!session_id) {
+      throw new HTTPException(401, { message: "any session found" });
+    }
+
+    const me = await db
+      .app_session
+      .findByPrimaryIndex("session_id", session_id)
+      .then((r) => r?.value || null)
+      .then((rr) =>
+        rr ? db.profile.findBySecondaryIndex("user_id", rr.user_id) : null
+      )
+      .then((rrr) => rrr?.result ? rrr.result : null);
+
+    if (!me) {
+      throw new HTTPException(500, {
+        message: "problem with session personalization",
+      });
+    }
+
+    return c.json({
+      profiles: me.map((r) => r.value),
+    }, 200);
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNOUT,

@@ -10,6 +10,12 @@ export const Bucket = z.object({
     refresh_token: z.string(),
   }),
 });
+export const Profile = z.object({
+  email: z.string().email(),
+  user_id: z.string().uuid(),
+  info: z.any(),
+});
+export type Profile = z.infer<typeof Profile>;
 export type Bucket = z.infer<typeof Bucket>;
 export const User = z.object({
   id: z.string().uuid(),
@@ -31,6 +37,7 @@ export type Secret = z.infer<typeof Secret>;
 export const Ghost = z.object({
   success_url_with_session_id: z.string(),
   data: z.object({
+    info: z.any(),
     success_url: z.string(),
     access_token: z.string(),
     email: z.string(),
@@ -59,6 +66,11 @@ export const db = kvdex({
     ),
     app_session: collection(
       AppSession,
+      {
+        indices: {
+          session_id: "primary",
+        },
+      },
     ),
     secret: collection(Secret, {
       indices: {
@@ -71,6 +83,12 @@ export const db = kvdex({
     ghost: collection(Ghost, {
       indices: {
         success_url_with_session_id: "primary",
+      },
+    }),
+    profile: collection(Profile, {
+      indices: {
+        email: "primary",
+        user_id: "secondary",
       },
     }),
   },

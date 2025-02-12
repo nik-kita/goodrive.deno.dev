@@ -15,7 +15,7 @@ import {
   signIn as internal_signIn,
 } from "jsr:@deno/kv-oauth@0.11.0";
 import {
-  GOOGLE_EMAIL_SCOPE,
+  ALL_GOOGLE_PUBLIC_SCOPES,
   GOOGLE_GDRIVE_SCOPES,
   GOOGLE_OFFLINE_CONSENT_PARAMS,
 } from "./const.ts";
@@ -27,7 +27,7 @@ const redirectUri = Env.API_URL +
 const email = createHelpers(
   createGoogleOAuthConfig({
     redirectUri,
-    scope: GOOGLE_EMAIL_SCOPE,
+    scope: ALL_GOOGLE_PUBLIC_SCOPES,
   }),
 ) as Omit<Helpers, "handleCallback"> & {
   handleCallback: HandleCallbackType;
@@ -36,7 +36,7 @@ const email = createHelpers(
 const google_drive = createHelpers(
   createGoogleOAuthConfig({
     redirectUri,
-    scope: GOOGLE_GDRIVE_SCOPES.concat(GOOGLE_EMAIL_SCOPE),
+    scope: GOOGLE_GDRIVE_SCOPES.concat(ALL_GOOGLE_PUBLIC_SCOPES),
   }),
 );
 
