@@ -39,7 +39,29 @@ app
           "Authorize user. Ask to grant access to user's google-drive.",
       },
     },
-  }, (c) => GoogleAuth.google_drive_sign_in(c.req.raw))
+  }, async (c) => {
+    const url = new URL(c.req.url);
+    const prev_email_only_session_id = url.searchParams.get(
+      "session_id",
+    );
+
+    if (prev_email_only_session_id) {
+      const success_url = url.searchParams.get("success_url") || Env.API_URL;
+      const ghost = await db.ghost.findByPrimaryIndex(
+        "success_url_with_session_id",
+        `${success_url}`,
+      ).then((r) => r?.value || null);
+
+      if (ghost) {
+        return GoogleAuth.google_drive_sign_in_incremental(c.req.raw, {
+          email: ghost.data.email,
+          access_token: ghost.data.access_token,
+        });
+      }
+    }
+
+    return GoogleAuth.google_drive_sign_in(c.req.raw);
+  })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     method: "get",
@@ -59,25 +81,50 @@ app
       tokens.accessToken,
     );
     const email = info.email;
-
-    /// 500: we need email in any case
-    if (!email) {
-      deleteCookie(c, OAUTH_COOKIE_NAME);
-      return response;
-    }
-
     const is_g_drive_scopes_present =
       intersect(info.scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
-    const bucket = await db.bucket.findByPrimaryIndex("email", email).then((
-      r,
-    ) => r?.value);
+    /// 500: nothing to do
+    if (!email && !is_g_drive_scopes_present) {
+      deleteCookie(c, OAUTH_COOKIE_NAME);
+      const success_url = response.headers.get("Location");
+
+      return c.redirect(
+        new URL(success_url!).origin +
+          `?error=500&details=${
+            encodeURIComponent("both google-drive access and email missing")
+          }`,
+      );
+    }
+
+    const bucket = email
+      ? await db.bucket.findByPrimaryIndex("email", email).then((
+        r,
+      ) => r?.value)
+      : null;
 
     /// 300: new email => redirect obtain google-drive access and refresh tokens
     if (!is_g_drive_scopes_present && !bucket) {
-      const success_url = response.headers.get("Location");
+      const success_url = response.headers.get("Location") || Env.API_URL;
+      const success_url_with_session_id = `${success_url}${sessionId}`;
+      await db.ghost.deleteByPrimaryIndex(
+        "success_url_with_session_id",
+        success_url_with_session_id,
+        {
+          consistency: "eventual",
+        },
+      );
+      await db.ghost.add({
+        success_url_with_session_id,
+        data: {
+          success_url,
+          access_token: tokens.accessToken,
+          email: email!, /// ((!email && !is_gdrive) || !is_gdrive) => email!
+        },
+      });
+
       return c.redirect(
         Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE +
-        `?success_url=${success_url}`,
+          `?success_url=${success_url}${sessionId}&session_id=${sessionId}`,
       );
     }
 
@@ -88,8 +135,17 @@ app
     /// 500: we need refresh token in any case
     if (!refresh_token) {
       deleteCookie(c, OAUTH_COOKIE_NAME);
-      return response;
+      const success_url = response.headers.get("Location");
+
+      return c.redirect(
+        new URL(success_url!).origin +
+          `?error=500&details=${
+            encodeURIComponent("refresh token is missing")
+          }`,
+      );
     }
+
+    let is_success_url_clean: boolean | string = true;
 
     /// the first or fresh authoRization with google-drive access
     if (is_g_drive_scopes_present) {
@@ -98,9 +154,42 @@ app
         refresh_token,
       };
 
+      const success_url = response.headers.get("Location");
+      const emailOrData = email || await (async () => {
+        is_success_url_clean = false;
+        if (!success_url) {
+          return null;
+        }
+
+        return await db.ghost.findByPrimaryIndex(
+          "success_url_with_session_id",
+          success_url,
+        ).then((r) => {
+          if (r?.value) {
+            is_success_url_clean = r.value.data.success_url;
+
+            return r.value.data;
+          }
+
+          return null;
+        });
+      })();
+
+      if (!emailOrData) {
+        return c.redirect(
+          new URL(success_url!).origin +
+            `?error=500&details=${
+              encodeURIComponent("unable to authenticate email")
+            }`,
+        );
+      }
+      const _email = typeof emailOrData === "string"
+        ? emailOrData
+        : emailOrData.email;
+
       /// fresh => update
       if (bucket) {
-        await db.bucket.updateByPrimaryIndex("email", email, {
+        await db.bucket.updateByPrimaryIndex("email", _email, {
           google_drive_authorization,
         });
       } /// first => create
@@ -112,7 +201,7 @@ app
             id: user_id,
           }),
           db.bucket.add({
-            email,
+            email: _email,
             user_id,
             google_drive_authorization,
           }),
@@ -127,7 +216,14 @@ app
       /// (no code required)
     }
 
-    /// happy
+    if (typeof is_success_url_clean === "string") {
+      return c.redirect(is_success_url_clean);
+    } else if (is_success_url_clean) {
+      return response;
+    }
+
+    deleteCookie(c, OAUTH_COOKIE_NAME);
+
     return response;
   })
   .openapi({

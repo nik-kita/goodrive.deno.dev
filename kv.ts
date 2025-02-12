@@ -28,6 +28,15 @@ export const Secret = z.object({
   description: z.string().optional(),
 });
 export type Secret = z.infer<typeof Secret>;
+export const Ghost = z.object({
+  success_url_with_session_id: z.string(),
+  data: z.object({
+    success_url: z.string(),
+    access_token: z.string(),
+    email: z.string(),
+  }),
+});
+export type Ghost = z.infer<typeof Ghost>;
 export const kv = await openKvToolbox({});
 export const db = kvdex({
   schema: {
@@ -57,6 +66,11 @@ export const db = kvdex({
         name: "primary",
         email: "secondary",
         user_id: "secondary",
+      },
+    }),
+    ghost: collection(Ghost, {
+      indices: {
+        success_url_with_session_id: "primary",
       },
     }),
   },
