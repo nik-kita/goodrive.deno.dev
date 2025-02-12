@@ -12,7 +12,7 @@ const app = new OpenAPIHono();
 
 app.use(mdw_cors());
 
-if (Env.RUNTIME_ENV !== "prod") {
+if (Env.RUNTIME_ENV !== "prod" || !!true) {
   app.get("/_drop-db", async (c) => {
     await __drop__all__data__in__kv__();
 
@@ -53,6 +53,9 @@ app
       ).then((r) => r?.value || null);
 
       if (ghost) {
+        if (ghost) {
+          await db.ghost.deleteByPrimaryIndex('success_url_with_session_id', success_url);
+        }
         return GoogleAuth.google_drive_sign_in_incremental(c.req.raw, {
           email: ghost.data.email,
           access_token: ghost.data.access_token,
@@ -90,9 +93,8 @@ app
 
       return c.redirect(
         new URL(success_url!).origin +
-          `?error=500&details=${
-            encodeURIComponent("both google-drive access and email missing")
-          }`,
+        `?error=500&details=${encodeURIComponent("both google-drive access and email missing")
+        }`,
       );
     }
 
@@ -124,7 +126,7 @@ app
 
       return c.redirect(
         Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE +
-          `?success_url=${success_url}${sessionId}&session_id=${sessionId}`,
+        `?success_url=${success_url}${sessionId}&session_id=${sessionId}`,
       );
     }
 
@@ -139,9 +141,8 @@ app
 
       return c.redirect(
         new URL(success_url!).origin +
-          `?error=500&details=${
-            encodeURIComponent("refresh token is missing")
-          }`,
+        `?error=500&details=${encodeURIComponent("refresh token is missing")
+        }`,
       );
     }
 
@@ -178,9 +179,8 @@ app
       if (!emailOrData) {
         return c.redirect(
           new URL(success_url!).origin +
-            `?error=500&details=${
-              encodeURIComponent("unable to authenticate email")
-            }`,
+          `?error=500&details=${encodeURIComponent("unable to authenticate email")
+          }`,
         );
       }
       const _email = typeof emailOrData === "string"
