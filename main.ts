@@ -12,7 +12,7 @@ const app = new OpenAPIHono();
 
 app.use(mdw_cors());
 
-if (Env.RUNTIME_ENV !== "prod" || !!true) {
+if (Env.RUNTIME_ENV !== "prod" || !!"TODO: delete me!".length) {
   app.get("/_drop-db", async (c) => {
     await __drop__all__data__in__kv__();
 

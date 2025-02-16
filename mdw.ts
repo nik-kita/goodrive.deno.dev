@@ -6,7 +6,7 @@ export const mdw_cors = () => {
   if (Env.RUNTIME_ENV === "prod") {
     return cors({ origin: Env.UI_URL! });
   } else if (Env.RUNTIME_ENV === "stage") {
-    return cors({ origin: "localhost" });
+    return cors();
   }
 
   return cors();
