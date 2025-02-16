@@ -2,6 +2,7 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { intersect } from "@std/collections";
 import { deleteCookie } from "hono/cookie";
+import { HTTPException } from "hono/http-exception";
 import { GOOGLE_GDRIVE_SCOPES, OAUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { GoogleAuth } from "./google-auth.ts";
@@ -245,6 +246,43 @@ app
       },
     },
   }, (c) => GoogleAuth.sign_out(c.req.raw))
+  .openapi({
+    method: "get",
+    path: "/api/auth/whoami",
+    responses: {
+      200: {
+        description: "Don't remember who you are!",
+      },
+    },
+  }, async (c) => {
+    const session = await GoogleAuth.get_session_id(c.req.raw);
+
+    if (!session) {
+      throw new HTTPException(401, { message: "Who are you?" });
+    }
+
+    const app_session = await db.app_session.findByPrimaryIndex(
+      "session_id",
+      session,
+    ).then((r) => r?.value || null);
+
+    if (!app_session) {
+      throw new HTTPException(500, {
+        message: "Are you sure that you are who you are???",
+      });
+    }
+
+    const user = await db.user.findByPrimaryIndex("id", app_session.user_id)
+      .then((r) => r?.value || null);
+
+    if (!user) {
+      throw new HTTPException(500, { message: "WTF????????????" });
+    }
+
+    return c.json({
+      user,
+    });
+  })
   .doc("/api", {
     openapi: "3.0.0",
     info: {

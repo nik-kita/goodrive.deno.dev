@@ -59,6 +59,11 @@ export const db = kvdex({
     ),
     app_session: collection(
       AppSession,
+      {
+        indices: {
+          session_id: "primary",
+        },
+      },
     ),
     secret: collection(Secret, {
       indices: {
