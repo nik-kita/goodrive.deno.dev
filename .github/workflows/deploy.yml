@@ -9,7 +9,12 @@ on:
 jobs:
   deploy:
     name: Deploy
-    environment: ${{(github.ref_name == 'main' && 'prod') || (github.ref_name == 'stage' && 'stage')}}
+    environment: |-
+      ${{
+         github.ref_name == 'main'    && 'prod'
+      || github.ref_name == 'stage'   && 'stage'
+      || 'UNKNOWN'
+      }}
     runs-on: ubuntu-latest
 
     permissions:
