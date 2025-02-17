@@ -29,9 +29,9 @@ jobs:
         run: >
           echo """${{secrets.DOTENV_CONTENT}}""" > .env
 
-      - name: Upload to Deno Deploy ${{env.PROJECT_NAME}}
+      - name: Upload to Deno Deploy ${{env.DENO_PROJECT_NAME}}
         uses: denoland/deployctl@v1
         with:
-          project: ${{env.PROJECT_NAME}}
+          project: ${{env.DENO_PROJECT_NAME}}
           entrypoint: "main.ts"
           root: ""
