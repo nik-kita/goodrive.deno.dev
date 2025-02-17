@@ -1,8 +1,4 @@
 name: Deploy
-env:
-  CURRENT_BRANCH: ${{ github.head_ref || github.ref_name }}
-  PROJECT_NAME: ${{ github.ref_name == 'main' && 'goodrive' || github.ref_name == 'stage' && 'stage-goodrive' }}
-  DOTENV_CONTENT: ${{ github.ref_name == 'main' && secrets.DOTENV_CONTENT || github.ref_name == 'stage' && secrets.STAGE_DOTENV_CONTENT }}
 
 on:
   push:
@@ -13,7 +9,7 @@ on:
 jobs:
   deploy:
     name: Deploy
-    environment: production
+    environment: ${{(github.ref_name == 'main' && 'prod') || (github.ref_name == 'stage' && 'stage')}}
     runs-on: ubuntu-latest
 
     permissions:
