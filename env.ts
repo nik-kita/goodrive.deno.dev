@@ -37,9 +37,9 @@ export const EnvSchema = z.object({
       : input.API_HOST,
   };
 }).superRefine((input, ctx) => {
-  if (input.RUNTIME_ENV === "prod") {
+  if (input.RUNTIME_ENV === "prod" || input.RUNTIME_ENV === "stage") {
     // deno-lint-ignore no-inner-declarations
-    function prod_required(envVar: keyof typeof input) {
+    function in_runtime_required(envVar: keyof typeof input) {
       if (!input[envVar]) {
         ctx.addIssue({
           code: z.ZodIssueCode.invalid_type,
@@ -53,7 +53,7 @@ export const EnvSchema = z.object({
 
     ([
       "UI_URL",
-    ] as (keyof typeof input)[]).forEach(prod_required);
+    ] as (keyof typeof input)[]).forEach(in_runtime_required);
   }
 });
 

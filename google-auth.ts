@@ -1,5 +1,6 @@
 // deno-lint-ignore-file ban-unused-ignore
 import {
+  Cookie,
   createGoogleOAuthConfig,
   createHelpers,
   Helpers,
@@ -22,6 +23,12 @@ import {
 import { Env } from "./env.ts";
 import { HandleCallbackType } from "./types.ts";
 
+const cookieOptions: Partial<Cookie> = {
+  domain: Env.UI_URL,
+  httpOnly: true,
+  sameSite: 'Lax',
+  secure: true,
+};
 const redirectUri = Env.API_URL +
   Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE;
 const email = createHelpers(
@@ -29,6 +36,9 @@ const email = createHelpers(
     redirectUri,
     scope: GOOGLE_EMAIL_SCOPE,
   }),
+  {
+    cookieOptions,
+  },
 ) as Omit<Helpers, "handleCallback"> & {
   handleCallback: HandleCallbackType;
 };
@@ -38,6 +48,9 @@ const google_drive = createHelpers(
     redirectUri,
     scope: GOOGLE_GDRIVE_SCOPES.concat(GOOGLE_EMAIL_SCOPE),
   }),
+  {
+    cookieOptions,
+  },
 );
 
 export const GoogleAuth = {
