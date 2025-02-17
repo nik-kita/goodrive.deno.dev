@@ -3,10 +3,8 @@ import { createMiddleware } from "hono/factory";
 import { Env } from "./env.ts";
 
 export const mdw_cors = () => {
-  if (Env.RUNTIME_ENV === "prod") {
+  if (Env.RUNTIME_ENV === "prod" || Env.RUNTIME_ENV === 'stage') {
     return cors({ origin: Env.UI_URL! });
-  } else if (Env.RUNTIME_ENV === "stage") {
-    return cors();
   }
 
   return cors();
