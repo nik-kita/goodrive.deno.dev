@@ -12,10 +12,6 @@ import {
 /// and why TODO: monitor/explore/find/develop better solution
 import { OAuth2Client } from "google-auth-library";
 import {
-  // deno-lint-ignore no-unused-vars
-  signIn as internal_signIn,
-} from "jsr:@deno/kv-oauth@0.11.0";
-import {
   GOOGLE_EMAIL_SCOPE,
   GOOGLE_GDRIVE_SCOPES,
   GOOGLE_OFFLINE_CONSENT_PARAMS,
@@ -65,26 +61,13 @@ export const GoogleAuth = {
     email: string;
     access_token: string;
   }) => {
-    return internal_signIn(req, {
-      defaults: {
-        scope: GOOGLE_GDRIVE_SCOPES,
-        requestOptions: {
-          headers: {
-            Authorization: `Bearer ${options.access_token}`,
-          },
-        },
-      },
-      redirectUri,
-      clientSecret: Env.GOOGLE_CLIENT_SECRET,
-      clientId: Env.GOOGLE_CLIENT_ID,
-      authorizationEndpointUri: "https://accounts.google.com/o/oauth2/v2/auth",
-      tokenUri: "https://oauth2.googleapis.com/token",
-    }, {
+    req.headers.append('Authorization', `Bearer ${options.access_token}`)
+    return google_drive.signIn(req, {
       urlParams: {
         ...GOOGLE_OFFLINE_CONSENT_PARAMS,
         include_granted_scopes: "false",
         login_hint: options.email,
-      },
+      }
     });
   },
   sign_out: email.signOut,
