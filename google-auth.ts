@@ -61,8 +61,14 @@ export const GoogleAuth = {
     email: string;
     access_token: string;
   }) => {
-    req.headers.append('Authorization', `Bearer ${options.access_token}`)
-    return google_drive.signIn(req, {
+    const redirect = new Request(req.url, {
+      headers: {
+        ...req.headers,
+        'Authorization': `Bearer ${options.access_token}`,
+      },
+      method: req.method,
+    })
+    return google_drive.signIn(redirect, {
       urlParams: {
         ...GOOGLE_OFFLINE_CONSENT_PARAMS,
         include_granted_scopes: "false",
