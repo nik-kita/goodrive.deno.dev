@@ -39,7 +39,7 @@ app
       secure: true,
     });
     return c.redirect(
-      `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}?already=${already}`,
+      `${Env.API_URL}${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}?already=${Object.entries(already).join('-')}`,
     );
   })
   .openapi({
