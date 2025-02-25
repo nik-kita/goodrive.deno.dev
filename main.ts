@@ -1,24 +1,17 @@
 // deno-lint-ignore-file no-unused-vars
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { Cookie } from "@std/http";
 import { OAuth2Client } from "google-auth-library";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { Env } from "./env.ts";
 import { __drop__all__data__in__kv__ } from "./kv.ts";
-import { mdw_cors } from "./mdw.ts";
+import { mdw_cors, mdw_ui_redirect_catch_all } from "./mdw.ts";
 
 const oauth2_client = new OAuth2Client();
+const redirectUri = `${Env.API_URL}${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`;
+
 const app = new OpenAPIHono();
-const cookieOptions: Partial<Cookie> = {
-  domain: Env.UI_URL!,
-  httpOnly: true,
-  sameSite: "Lax",
-  secure: true,
-};
-const redirectUri = Env.API_URL +
-  Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE;
 
 app.use(mdw_cors());
 app
@@ -33,13 +26,13 @@ app
   }, (c) => {
     const already = getCookie(c);
     setCookie(c, "auth", Date.now().toString(), {
-      domain: '.stage.goodrive.services',
+      domain: `.${Env.UI_URL!}`,
       httpOnly: true,
       sameSite: "Lax",
       secure: true,
     });
     return c.redirect(
-      `${Env.API_URL}${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}/${Object.entries(already).join('/')}`,
+      `${Env.API_URL}${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
     );
   })
   .openapi({
@@ -59,6 +52,7 @@ app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     method: "get",
+    middleware: [mdw_ui_redirect_catch_all],
     responses: {
       200: {
         description:
@@ -68,8 +62,9 @@ app
   }, (c) => {
     return c.redirect(
       new URL(Env.UI_URL!).origin +
-      `?error=500&details=${encodeURIComponent("both google-drive access and email missing")
-      }`,
+        `?error=500&details=${
+          encodeURIComponent("both google-drive access and email missing")
+        }`,
     );
   })
   .openapi({
