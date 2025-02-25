@@ -1,4 +1,3 @@
-export { OAUTH_COOKIE_NAME } from "https://jsr.io/@deno/kv-oauth/0.11.0/lib/_http.ts";
 export const GOOGLE_OPEN_ID_SCOPE = "openid";
 export const GOOGLE_GDRIVE_SCOPES = [
   "https://www.googleapis.com/auth/drive.file",

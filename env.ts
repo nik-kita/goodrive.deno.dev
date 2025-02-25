@@ -37,7 +37,9 @@ export const EnvSchema = z.object({
       : input.API_HOST,
   };
 }).superRefine((input, ctx) => {
-  if (input.RUNTIME_ENV === "prod" || input.RUNTIME_ENV === "stage") {
+  if (input.RUNTIME_ENV === "local") {
+    input.UI_URL || (input.UI_URL = "http://localhost:5173");
+  } else if (input.RUNTIME_ENV === "prod" || input.RUNTIME_ENV === "stage") {
     // deno-lint-ignore no-inner-declarations
     function in_runtime_required(envVar: keyof typeof input) {
       if (!input[envVar]) {

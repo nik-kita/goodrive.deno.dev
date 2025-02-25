@@ -14,7 +14,7 @@
       "runtimeExecutable": "/home/nik/.deno/bin/deno",
       "runtimeArgs": [
         "run",
-        "--unstable",
+        "--unstable-kv",
         "--inspect-wait",
         "--allow-all"
       ],
