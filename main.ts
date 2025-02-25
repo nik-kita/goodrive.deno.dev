@@ -33,7 +33,7 @@ app
   }, (c) => {
     const already = getCookie(c);
     setCookie(c, "auth", Date.now().toString(), {
-      domain: Env.UI_URL!,
+      domain: '.stage.goodrive.services',
       httpOnly: true,
       sameSite: "Lax",
       secure: true,
@@ -68,9 +68,8 @@ app
   }, (c) => {
     return c.redirect(
       new URL(Env.UI_URL!).origin +
-        `?error=500&details=${
-          encodeURIComponent("both google-drive access and email missing")
-        }`,
+      `?error=500&details=${encodeURIComponent("both google-drive access and email missing")
+      }`,
     );
   })
   .openapi({
