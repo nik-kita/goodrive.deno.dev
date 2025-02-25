@@ -3,6 +3,7 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Cookie } from "@std/http";
 import { OAuth2Client } from "google-auth-library";
+import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { Env } from "./env.ts";
 import { __drop__all__data__in__kv__ } from "./kv.ts";
@@ -20,15 +21,6 @@ const redirectUri = Env.API_URL +
   Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE;
 
 app.use(mdw_cors());
-
-if (Env.RUNTIME_ENV !== "prod" || !!"TODO: delete me!".length) {
-  app.get("/_drop-db", async (c) => {
-    await __drop__all__data__in__kv__();
-
-    return c.json({ ok: true });
-  });
-}
-
 app
   .openapi({
     path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
@@ -39,8 +31,15 @@ app
       },
     },
   }, (c) => {
+    const already = getCookie(c);
+    setCookie(c, "auth", Date.now().toString(), {
+      domain: Env.UI_URL!,
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: true,
+    });
     return c.redirect(
-      `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
+      `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}?already=${already}`,
     );
   })
   .openapi({
@@ -105,6 +104,14 @@ app
       version: "2.0.0",
     },
   }).get("/", swaggerUI({ url: "/api" }));
+
+if (Env.RUNTIME_ENV !== "prod" || !!"TODO: delete me!".length) {
+  app.get("/_drop-db", async (c) => {
+    await __drop__all__data__in__kv__();
+
+    return c.json({ ok: true });
+  });
+}
 
 Deno.serve({
   port: 3000,
