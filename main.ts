@@ -1,15 +1,12 @@
 // deno-lint-ignore-file no-unused-vars
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { intersect } from "@std/collections";
-import { deleteCookie } from "hono/cookie";
-import { HTTPException } from "hono/http-exception";
-import { GOOGLE_GDRIVE_SCOPES } from "./const.ts";
-import { Env } from "./env.ts";
-import { __drop__all__data__in__kv__, db } from "./kv.ts";
-import { mdw_cors } from "./mdw.ts";
-import { OAuth2Client } from "google-auth-library";
 import { Cookie } from "@std/http";
+import { OAuth2Client } from "google-auth-library";
+import { HTTPException } from "hono/http-exception";
+import { Env } from "./env.ts";
+import { __drop__all__data__in__kv__ } from "./kv.ts";
+import { mdw_cors } from "./mdw.ts";
 
 const oauth2_client = new OAuth2Client();
 const app = new OpenAPIHono();
@@ -42,7 +39,9 @@ app
       },
     },
   }, (c) => {
-    return c.text("Is not implemented yet!");
+    return c.redirect(
+      `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
+    );
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_AUTHORIZATION_G_DRIVE,
@@ -54,7 +53,9 @@ app
       },
     },
   }, (c) => {
-    return c.text("Is not implemented yet!");
+    return c.redirect(
+      `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
+    );
   })
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
@@ -82,7 +83,9 @@ app
       },
     },
   }, (c) => {
-    return c.text("Is not implemented yet!");
+    return c.redirect(
+      new URL(Env.UI_URL!).origin,
+    );
   })
   .openapi({
     method: "get",
@@ -93,7 +96,7 @@ app
       },
     },
   }, (c) => {
-    return c.text("Is not implemented yet!");
+    throw new HTTPException(500, { message: "Is not implemented yet!" });
   })
   .doc("/api", {
     openapi: "3.0.0",
