@@ -72,7 +72,7 @@ debug(2);
     });
     debug(7, saveGhostRes, redirect);
 
-    return c.redirect(redirect);
+    return c.redirect(redirect, 302);
   });
 app
   .openapi({
