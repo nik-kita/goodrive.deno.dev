@@ -24,3 +24,20 @@ export const google_sign_in_url = (
 
   return uri;
 };
+
+export const google_process_cb_data = async (code: string) => {
+  const payload = await google_oauth2_client.getToken(code);
+
+  if (!payload.tokens.access_token) {
+    throw new Error(`Unable to process data from google <code> ${code}`);
+  }
+
+  const info = await google_oauth2_client.getTokenInfo(
+    payload.tokens.access_token,
+  );
+
+  return {
+    payload,
+    info,
+  };
+};

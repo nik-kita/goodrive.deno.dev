@@ -24,6 +24,8 @@ export const AppSession = z.object({
 });
 export const Ghost = z.object({
   id: z.string(),
+  email: z.string().nullable(),
+  access_token: z.string().nullable(),
 });
 export type Ghost = z.infer<typeof Ghost>;
 export type AppSession = z.infer<typeof AppSession>;

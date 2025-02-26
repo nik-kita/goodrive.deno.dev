@@ -1,16 +1,21 @@
 // deno-lint-ignore-file no-unused-vars
 import { swaggerUI } from "@hono/swagger-ui";
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono, z } from "@hono/zod-openapi";
+import { intersect } from "@std/collections";
 import { SECOND } from "@std/datetime";
-import { getCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import {
   AUTH_COOKIE_NAME,
   GOOGLE_EMAIL_SCOPE,
+  GOOGLE_GDRIVE_SCOPES,
   GOOGLE_OPEN_ID_SCOPE,
 } from "./const.ts";
 import { Env } from "./env.ts";
-import { google_sign_in_url } from "./google.service.ts";
+import {
+  google_process_cb_data,
+  google_sign_in_url,
+} from "./google.service.ts";
 import { __drop__all__data__in__kv__, db } from "./kv.ts";
 import {
   mdw_authentication,
@@ -47,7 +52,9 @@ app.use(mdw_cors());
       scope: [GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE],
       state: id,
     });
-    await db.ghost.add({ id }, { expireIn: SECOND * 30 });
+    await db.ghost.add({ id, email: null, access_token: null }, {
+      expireIn: SECOND * 30,
+    });
 
     return c.redirect(redirect);
   });
@@ -71,10 +78,20 @@ app
       `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
     );
   });
-app
+(app as OpenAPIHono<mdw_ui_redirect_catch_all>)
   .openapi({
     path: Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE,
     method: "get",
+    request: {
+      query: z.object({
+        code: z.string().optional(),
+        state: z.string().optional(),
+        error: z.string().optional(),
+      }, {
+        message:
+          "Fail to validate google request to application's callback endpoint",
+      }),
+    },
     middleware: [mdw_ui_redirect_catch_all],
     responses: {
       200: {
@@ -82,13 +99,117 @@ app
           "This endpoint should not be used directly. The google use it.",
       },
     },
-  }, (c) => {
-    return c.redirect(
-      new URL(Env.UI_URL!).origin +
-        `?error=500&details=${
-          encodeURIComponent("both google-drive access and email missing")
-        }`,
+  }, async (c) => {
+    const { code, error, state } = c.req.valid("query");
+
+    if (error || !code || !state) {
+      throw new HTTPException(500, {
+        message:
+          `Fail to process google cb... <code> ${code}, <state> ${state}`,
+        cause: error,
+      });
+    }
+
+    const { info, payload } = await google_process_cb_data(code);
+    const email = info.email;
+    const is_g_drive_scopes_present =
+      intersect(info.scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
+
+    if (!email && !is_g_drive_scopes_present) {
+      deleteCookie(c, AUTH_COOKIE_NAME);
+
+      throw new HTTPException(500, {
+        message: "Fail to process google cb",
+        cause: "Missing email and g_drive scopes",
+      });
+    }
+
+    const bucket = email
+      ? await db.bucket.findByPrimaryIndex("email", email).then((
+        r,
+      ) => r?.value)
+      : null;
+
+    if (!is_g_drive_scopes_present && !bucket) {
+      await db.ghost.deleteByPrimaryIndex(
+        "id",
+        state,
+        {
+          consistency: "eventual",
+        },
+      );
+      const id = crypto.randomUUID();
+      await db.ghost.add({
+        id,
+        access_token: payload.tokens.access_token || null,
+        email: email!, /// ((!email && !is_gdrive) || !is_gdrive) => email!
+      });
+      const redirect_for_g_drive = google_sign_in_url({
+        scope: GOOGLE_GDRIVE_SCOPES,
+        state: id,
+        include_granted_scopes: true,
+        login_hint: email!,
+      });
+
+      return c.newResponse(null, 302, {
+        Location: redirect_for_g_drive,
+        ...(payload.tokens.access_token &&
+          { "Authorization": `Bearer ${payload.tokens.access_token}` }),
+      });
+    }
+
+    const {
+      access_token,
+      refresh_token = bucket?.google_drive_authorization.refresh_token,
+    } = payload.tokens;
+
+    if (!refresh_token) {
+      deleteCookie(c, AUTH_COOKIE_NAME);
+
+      throw new HTTPException(500, { message: "Missing google refresh token" });
+    }
+
+    const ghost = await db.ghost.findByPrimaryIndex("id", state).then((r) =>
+      r?.value || null
     );
+
+    if (!ghost) {
+      throw new HTTPException(500, {
+        message: "Missing state of candidate to authorize",
+      });
+    } else if (!ghost.email && !email) {
+      throw new HTTPException(500, {
+        message: "Missing email in google cb and ghost",
+      });
+    }
+
+    // TODO: check from here
+    const _email = email || ghost.email!;
+    const session_id = crypto.randomUUID();
+
+    setCookie(c, AUTH_COOKIE_NAME, session_id);
+
+    if (!bucket) {
+      const user_id = session_id;
+      await Promise.all([
+        db.user.add({ id: user_id }),
+        db.bucket.add({
+          user_id,
+          email: _email,
+          google_drive_authorization: {
+            access_token: payload.tokens.access_token!,
+            refresh_token,
+          },
+        }),
+        db.app_session.add({
+          email: _email,
+          session_id,
+          user_id,
+        }),
+      ]);
+    }
+
+    return c.redirect(Env.UI_URL!);
   });
 app
   .openapi({

@@ -112,10 +112,11 @@ export const mdw_ui_redirect_catch_all = createMiddleware<
       const error_name = _err?.name || "something-wrong";
       const message = _err?.message || "oops";
       const details = _err?.details || "unknown";
+      const cause = _err?.cause || "unknown";
 
       return c.redirect(
         new URL(Env.UI_URL!).origin +
-          `/500?name=${error_name}&message=${message}&details=${details}`,
+          `/500?name=${error_name}&message=${message}&cause=${cause}&details=${details}`,
       );
     }
   },
