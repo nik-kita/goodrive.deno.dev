@@ -33,7 +33,12 @@ export const mdw_authentication = createMiddleware<
 
   if (!auth_cookie) {
     console.log(1.2)
-    c.set("auth", { as: "guest" });
+    try {
+      c.set("auth", { as: "guest" });
+    } catch (err) {
+      console.log('error c.set', err);
+      return c.text('ooops');
+    }
     console.log(1.3)
 
     next();
