@@ -41,7 +41,7 @@ export const mdw_authentication = createMiddleware<
     }
     console.log(1.3)
 
-    next();
+    await next();
 
     console.log(1.4)
 
@@ -63,7 +63,7 @@ export const mdw_authentication = createMiddleware<
     deleteCookie(c, AUTH_COOKIE_NAME);
     c.set("auth", { as: "guest" });
 
-    next();
+    await next();
 
     return;
   }
@@ -108,9 +108,11 @@ export const mdw_attach_referer = createMiddleware<
   AppCtx<{
     referer?: string;
   }>
->((c, next) => {
+>(async (c, next) => {
   c.set("referer", c.req.header("referer"));
-  return next();
+  await next();
+
+  return;
 });
 
 export type mdw_ui_redirect_catch_all = AppCtx;
@@ -119,7 +121,9 @@ export const mdw_ui_redirect_catch_all = createMiddleware<
 >(
   async (c, next) => {
     try {
-      return await next();
+      await next();
+
+      return;
     } catch (err: unknown) {
       console.error(err);
       const _err = err as Record<string, unknown> || undefined;
