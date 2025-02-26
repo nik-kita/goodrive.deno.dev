@@ -67,10 +67,10 @@ debug(2);
     });
     debug(6);
 
-    await db.ghost.add({ id, email: null, access_token: null }, {
+    const saveGhostRes = await db.ghost.add({ id, email: null, access_token: null }, {
       expireIn: SECOND * 30,
     });
-    debug(7);
+    debug(7, saveGhostRes, redirect);
 
     return c.redirect(redirect);
   });
