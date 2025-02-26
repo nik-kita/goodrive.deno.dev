@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { openKvToolbox } from "@kitsonk/kv-toolbox";
-import { collection, type DenoKv, kvdex } from "@olli/kvdex";
+import { collection, kvdex } from "@olli/kvdex";
 
 export const Bucket = z.object({
   email: z.string().email(),
@@ -19,7 +19,13 @@ export const AppSession = z.object({
   session_id: z.string(),
   user_id: z.string(),
   email: z.string().email(),
+  created_at: z.date().default(() => new Date()),
+  updated_at: z.date().default(() => new Date()),
 });
+export const Ghost = z.object({
+  id: z.string(),
+});
+export type Ghost = z.infer<typeof Ghost>;
 export type AppSession = z.infer<typeof AppSession>;
 export const Secret = z.object({
   api_key: z.string().uuid(),
@@ -67,8 +73,13 @@ export const db = kvdex({
         user_id: "secondary",
       },
     }),
+    ghost: collection(Ghost, {
+      indices: {
+        id: "primary",
+      },
+    }),
   },
-  kv: kv as unknown as DenoKv,
+  kv: kv as unknown as Awaited<ReturnType<typeof Deno.openKv>>,
 });
 
 export async function __drop__all__data__in__kv__() {

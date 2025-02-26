@@ -7,6 +7,7 @@ export const GOOGLE_OFFLINE_CONSENT_PARAMS = {
   access_type: "offline",
   prompt: "consent",
 };
+export const AUTH_COOKIE_NAME = "auth";
 
 export type GoogleAuthJwtPayload = {
   iss: string;
@@ -22,4 +23,8 @@ export type GoogleAuthJwtPayload = {
   family_name: string;
   iat: number;
   exp: number;
+};
+
+export type AppCtx<T extends object = Record<string, unknown>> = {
+  Variables: {} & T;
 };

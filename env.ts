@@ -29,6 +29,8 @@ export const EnvSchema = z.object({
     .default("/api/auth/google-callback"),
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
+  AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS: z.number({ coerce: true })
+    .positive().default(60),
 }).transform((input) => {
   return {
     ...input,

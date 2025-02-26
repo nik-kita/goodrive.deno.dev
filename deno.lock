@@ -3,7 +3,7 @@
   "specifiers": {
     "jsr:@deno/kv-utils@~0.1.3": "0.1.3",
     "jsr:@kitsonk/kv-toolbox@~0.27.2": "0.27.2",
-    "jsr:@olli/kvdex@^3.1.3": "3.1.3",
+    "jsr:@olli/kvdex@^3.1.3": "3.2.0",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/assert@1": "1.0.11",
     "jsr:@std/async@0.221": "0.221.0",
@@ -16,6 +16,7 @@
     "jsr:@std/collections@^1.0.10": "1.0.10",
     "jsr:@std/collections@^1.0.9": "1.0.10",
     "jsr:@std/crypto@1": "1.0.4",
+    "jsr:@std/datetime@~0.225.3": "0.225.3",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@0.221": "0.221.0",
     "jsr:@std/encoding@1": "1.0.7",
@@ -38,7 +39,7 @@
     "npm:@hono/swagger-ui@0.5": "0.5.0_hono@4.7.0",
     "npm:@hono/zod-openapi@~0.18.4": "0.18.4_hono@4.7.0_zod@3.24.1",
     "npm:google-auth-library@8.0.0": "8.0.0",
-    "npm:hono@^4.7.0": "4.7.0",
+    "npm:hono@^4.7.2": "4.7.2",
     "npm:zod@^3.23.8": "3.24.1",
     "npm:zod@^3.24.1": "3.24.1"
   },
@@ -67,8 +68,8 @@
         "jsr:@std/media-types@1"
       ]
     },
-    "@olli/kvdex@3.1.3": {
-      "integrity": "36bf42ea5670092c81634c26b2ed9f68b4535b6d8270b68569923b3af03145a8",
+    "@olli/kvdex@3.2.0": {
+      "integrity": "66a139010ba8e16e56b109954308629429d66a9b6e4ed3241116474584fbba24",
       "dependencies": [
         "jsr:@std/bytes@^1.0.4",
         "jsr:@std/cli@1.0.12",
@@ -103,6 +104,9 @@
     },
     "@std/crypto@1.0.4": {
       "integrity": "cee245c453bd5366207f4d8aa25ea3e9c86cecad2be3fefcaa6cb17203d79340"
+    },
+    "@std/datetime@0.225.3": {
+      "integrity": "fda0b7791b43d9a46764986fec39922a8ceb70ffca642651fa7d0683501a171a"
     },
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
@@ -190,7 +194,7 @@
     "@hono/swagger-ui@0.5.0_hono@4.7.0": {
       "integrity": "sha512-MWYYSv9kC8IwFBLZdwgZZMT9zUq2C/4/ekuyEYOkHEgUMqu+FG3eebtBZ4ofMh60xYRxRR2BgQGoNIILys/PFg==",
       "dependencies": [
-        "hono"
+        "hono@4.7.0"
       ]
     },
     "@hono/zod-openapi@0.18.4_hono@4.7.0_zod@3.24.1": {
@@ -198,14 +202,14 @@
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
-        "hono",
+        "hono@4.7.0",
         "zod"
       ]
     },
     "@hono/zod-validator@0.4.2_hono@4.7.0_zod@3.24.1": {
       "integrity": "sha512-1rrlBg+EpDPhzOV4hT9pxr5+xDVmKuz6YJl+la7VCwK6ass5ldyKm5fD+umJdV2zhHD6jROoCCv8NbTwyfhT0g==",
       "dependencies": [
-        "hono",
+        "hono@4.7.0",
         "zod"
       ]
     },
@@ -301,6 +305,9 @@
     },
     "hono@4.7.0": {
       "integrity": "sha512-hV97aIR4WYbG30k234sD9B3VNr1ZWdQRmrVF76LKFlmI7O9Yo70mG9+mFwyQ6Sjrz4wH71GfnBxv6CPjcx3QNw=="
+    },
+    "hono@4.7.2": {
+      "integrity": "sha512-8V5XxoOF6SI12jkHkzX/6aLBMU5GEF5g387EjVSQipS0DlxWgWGSMeEayY3CRBjtTUQYwLHx9JYouWqKzy2Vng=="
     },
     "https-proxy-agent@5.0.1": {
       "integrity": "sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==",
@@ -402,12 +409,13 @@
       "jsr:@kitsonk/kv-toolbox@~0.27.2",
       "jsr:@olli/kvdex@^3.1.3",
       "jsr:@std/collections@^1.0.10",
+      "jsr:@std/datetime@~0.225.3",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/http@^1.0.13",
       "npm:@hono/swagger-ui@0.5",
       "npm:@hono/zod-openapi@~0.18.4",
       "npm:google-auth-library@8.0.0",
-      "npm:hono@^4.7.0",
+      "npm:hono@^4.7.2",
       "npm:zod@^3.24.1"
     ]
   }
