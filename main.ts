@@ -70,6 +70,8 @@ debug(2);
     const saveGhostRes = await db.ghost.add({ id, email: null, access_token: null }, {
       expireIn: SECOND * 30,
     });
+    const ghost = await db.ghost.findByPrimaryIndex('id', id);
+    console.log(ghost);
     debug(7, saveGhostRes, redirect);
 
     return c.newResponse(null, 302, {
