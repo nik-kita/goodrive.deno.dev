@@ -81,11 +81,7 @@ debug(2);
     console.log(ghost);
     debug(7, saveGhostRes, redirect);
 
-    return c.newResponse(null, {
-      headers: {
-        Location: redirect,
-      },
-    });
+    return c.redirect(redirect);
   });
 app
   .openapi({
