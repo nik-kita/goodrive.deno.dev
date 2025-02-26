@@ -72,7 +72,9 @@ debug(2);
     });
     debug(7, saveGhostRes, redirect);
 
-    return c.redirect(redirect, 302);
+    return c.newResponse(null, 302, {
+      Location: redirect,
+    });
   });
 app
   .openapi({
