@@ -27,12 +27,17 @@ export type mdw_authentication = AppCtx<
 export const mdw_authentication = createMiddleware<
   mdw_authentication
 >(async (c, next) => {
+  console.warn(1.1);
   const auth_cookie = getCookie(c, AUTH_COOKIE_NAME);
 
   if (!auth_cookie) {
+    console.log(1.2)
     c.set("auth", { as: "guest" });
+    console.log(1.3)
 
     next();
+
+    console.log(1.4)
 
     return;
   }
@@ -47,6 +52,8 @@ export const mdw_authentication = createMiddleware<
     console.warn(
       `On practice such case should not be possible... if !prev_session in ${import.meta.filename}`,
     );
+    console.log(1.5)
+
     deleteCookie(c, AUTH_COOKIE_NAME);
     c.set("auth", { as: "guest" });
 
@@ -57,10 +64,11 @@ export const mdw_authentication = createMiddleware<
 
   const now = new Date();
   const is_active_session = prev_session.updated_at.getTime() +
-      Env.AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS * SECOND >
+    Env.AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS * SECOND >
     now.getTime();
 
   if (!is_active_session) {
+    console.log(1.6);
     deleteCookie(c, AUTH_COOKIE_NAME);
     c.set("auth", { as: "guest" });
 
@@ -116,7 +124,7 @@ export const mdw_ui_redirect_catch_all = createMiddleware<
 
       return c.redirect(
         new URL(Env.UI_URL!).origin +
-          `/500?name=${error_name}&message=${message}&cause=${cause}&details=${details}`,
+        `/500?name=${error_name}&message=${message}&cause=${cause}&details=${details}`,
       );
     }
   },

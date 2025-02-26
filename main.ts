@@ -237,7 +237,12 @@ app
     const session_id = crypto.randomUUID();
     debug(30);
 
-    setCookie(c, AUTH_COOKIE_NAME, session_id);
+    setCookie(c, AUTH_COOKIE_NAME, session_id, {
+      domain: `.${Env.UI_URL!}`,
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: true,
+    });
     debug(31);
 
     if (!bucket) {
@@ -310,14 +315,3 @@ if (Env.RUNTIME_ENV !== "prod" || !!"TODO: delete me!".length) {
 Deno.serve({
   port: 3000,
 }, app.fetch);
-
-/**
- *
-      setCookie(c, AUTH_COOKIE_NAME, Date.now().toString(), {
-      domain: `.${Env.UI_URL!}`,
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: true,
-    });
-
- */
