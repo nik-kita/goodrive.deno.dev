@@ -34,7 +34,7 @@ export const mdw_authentication = createMiddleware<
 
   if (!auth_cookie) {
     console.log(1.2);
-
+    c.set("auth", { as: "guest" });
     await next();
 
     console.log(1.4);

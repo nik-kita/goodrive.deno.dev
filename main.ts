@@ -50,6 +50,9 @@ debug(2);
     },
   }, async (c) => {
     debug(3);
+    debug(c.var);
+    debug(c.var.auth);
+    debug(c.var.auth.as);
 
     if (c.var.auth.as === "user") {
       debug(4);
