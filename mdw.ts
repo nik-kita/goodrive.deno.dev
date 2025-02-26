@@ -5,6 +5,7 @@ import { createMiddleware } from "hono/factory";
 import { AppCtx, AUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { AppSession, db } from "./kv.ts";
+import { HTTPException } from "hono/http-exception";
 
 export const mdw_cors = () => {
   if (Env.RUNTIME_ENV === "prod" || Env.RUNTIME_ENV === "stage") {
@@ -28,22 +29,15 @@ export const mdw_authentication = createMiddleware<
   mdw_authentication
 >(async (c, next) => {
   console.warn(1.1);
-  console.log(Array.from(c.req.raw.headers.entries()).join())
+  console.log(Array.from(c.req.raw.headers.entries()).join());
   const auth_cookie = getCookie(c, AUTH_COOKIE_NAME);
 
   if (!auth_cookie) {
-    console.log(1.2)
-    try {
-      c.set("auth", { as: "guest" });
-    } catch (err) {
-      console.log('error c.set', err);
-      return c.text('ooops');
-    }
-    console.log(1.3)
+    console.log(1.2);
 
     await next();
 
-    console.log(1.4)
+    console.log(1.4);
 
     return;
   }
@@ -58,7 +52,7 @@ export const mdw_authentication = createMiddleware<
     console.warn(
       `On practice such case should not be possible... if !prev_session in ${import.meta.filename}`,
     );
-    console.log(1.5)
+    console.log(1.5);
 
     deleteCookie(c, AUTH_COOKIE_NAME);
     c.set("auth", { as: "guest" });
@@ -70,7 +64,7 @@ export const mdw_authentication = createMiddleware<
 
   const now = new Date();
   const is_active_session = prev_session.updated_at.getTime() +
-    Env.AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS * SECOND >
+      Env.AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS * SECOND >
     now.getTime();
 
   if (!is_active_session) {
@@ -132,9 +126,9 @@ export const mdw_ui_redirect_catch_all = createMiddleware<
       const details = _err?.details || "unknown";
       const cause = _err?.cause || "unknown";
 
-      return c.redirect(
+      c.res = c.newResponse(
         new URL(Env.UI_URL!).origin +
-        `/500?name=${error_name}&message=${message}&cause=${cause}&details=${details}`,
+          `/500?name=${error_name}&message=${message}&cause=${cause}&details=${details}`,
       );
     }
   },

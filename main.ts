@@ -67,17 +67,21 @@ debug(2);
     });
     debug(6);
 
-    const saveGhostRes = await db.ghost.add({ id, email: null, access_token: null }, {
+    const saveGhostRes = await db.ghost.add({
+      id,
+      email: null,
+      access_token: null,
+    }, {
       expireIn: SECOND * 30,
     });
-    const ghost = await db.ghost.findByPrimaryIndex('id', id);
+    const ghost = await db.ghost.findByPrimaryIndex("id", id);
     console.log(ghost);
     debug(7, saveGhostRes, redirect);
 
     return c.newResponse(null, {
       headers: {
         Location: redirect,
-      }
+      },
     });
   });
 app
@@ -205,8 +209,7 @@ app
           ...(payload.tokens.access_token &&
             { "Authorization": `Bearer ${payload.tokens.access_token}` }),
         },
-      }
-      );
+      });
     }
     debug(23);
 
