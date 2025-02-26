@@ -28,6 +28,7 @@ export const mdw_authentication = createMiddleware<
   mdw_authentication
 >(async (c, next) => {
   console.warn(1.1);
+  console.log(Array.from(c.req.raw.headers.entries()).join())
   const auth_cookie = getCookie(c, AUTH_COOKIE_NAME);
 
   if (!auth_cookie) {
