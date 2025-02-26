@@ -74,8 +74,10 @@ debug(2);
     console.log(ghost);
     debug(7, saveGhostRes, redirect);
 
-    return c.newResponse(null, 302, {
-      Location: redirect,
+    return c.newResponse(null, {
+      headers: {
+        Location: redirect,
+      }
     });
   });
 app
@@ -196,11 +198,15 @@ app
       });
       debug(22);
 
-      return c.newResponse(null, 302, {
-        Location: redirect_for_g_drive,
-        ...(payload.tokens.access_token &&
-          { "Authorization": `Bearer ${payload.tokens.access_token}` }),
-      });
+      return c.newResponse(null, {
+        status: 302,
+        headers: {
+          Location: redirect_for_g_drive,
+          ...(payload.tokens.access_token &&
+            { "Authorization": `Bearer ${payload.tokens.access_token}` }),
+        },
+      }
+      );
     }
     debug(23);
 
