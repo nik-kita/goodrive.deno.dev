@@ -5,7 +5,6 @@ import { createMiddleware } from "hono/factory";
 import { AppCtx, AUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { AppSession, db } from "./kv.ts";
-import { HTTPException } from "hono/http-exception";
 
 export const mdw_cors = () => {
   if (Env.RUNTIME_ENV === "prod" || Env.RUNTIME_ENV === "stage") {
@@ -28,16 +27,11 @@ export type mdw_authentication = AppCtx<
 export const mdw_authentication = createMiddleware<
   mdw_authentication
 >(async (c, next) => {
-  console.warn(1.1);
-  console.log(Array.from(c.req.raw.headers.entries()).join());
   const auth_cookie = getCookie(c, AUTH_COOKIE_NAME);
 
   if (!auth_cookie) {
-    console.log(1.2);
     c.set("auth", { as: "guest" });
     await next();
-
-    console.log(1.4);
 
     return;
   }
@@ -52,7 +46,6 @@ export const mdw_authentication = createMiddleware<
     console.warn(
       `On practice such case should not be possible... if !prev_session in ${import.meta.filename}`,
     );
-    console.log(1.5);
 
     deleteCookie(c, AUTH_COOKIE_NAME);
     c.set("auth", { as: "guest" });

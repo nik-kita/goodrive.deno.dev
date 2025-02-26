@@ -25,14 +25,7 @@ import {
 
 const app = new OpenAPIHono();
 
-let i = 0;
-const debug = (...args: unknown[]) => {
-  console.warn("debug:", ++i, ...args);
-};
-
-debug(1);
 app.use(mdw_cors());
-debug(2);
 
 (app as OpenAPIHono<mdw_ui_redirect_catch_all & mdw_authentication>)
   .openapi({
@@ -40,7 +33,7 @@ debug(2);
     method: "get",
     middleware: [
       mdw_ui_redirect_catch_all,
-      /// @ts-ignore
+      // @ts-ignore
       mdw_authentication,
     ],
     responses: {
@@ -49,37 +42,27 @@ debug(2);
       },
     },
   }, async (c) => {
-    debug(3);
-    debug(c.var);
-    debug(c.var.auth);
-    debug(c.var.auth.as);
-
     if (c.var.auth.as === "user") {
-      debug(4);
-
       throw new HTTPException(400, {
         message: `User is already authenticated as ${c.var.auth.session.email}`,
       });
     }
-    debug(5);
 
     const id = crypto.randomUUID();
     const redirect = google_sign_in_url({
       scope: [GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE],
       state: id,
     });
-    debug(6);
 
-    const saveGhostRes = await db.ghost.add({
+    await db.ghost.add({
       id,
       email: null,
       access_token: null,
+      user_id: null,
     }, {
       expireIn: SECOND * 30,
     });
-    const ghost = await db.ghost.findByPrimaryIndex("id", id);
-    console.log(ghost);
-    debug(7, saveGhostRes, redirect);
+    await db.ghost.findByPrimaryIndex("id", id);
 
     return c.redirect(redirect);
   });
@@ -94,14 +77,11 @@ app
       },
     },
   }, (c) => {
-    debug(8);
-
     const state: {
       auth_cookie: string | undefined;
     } = {
       auth_cookie: getCookie(c, AUTH_COOKIE_NAME),
     };
-    debug(9);
 
     return c.redirect(
       `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
@@ -129,125 +109,115 @@ app
       },
     },
   }, async (c) => {
-    debug(10);
-
     const { code, error, state } = c.req.valid("query");
-    debug();
 
     if (error || !code || !state) {
-      debug(11);
-
       throw new HTTPException(500, {
         message:
           `Fail to process google cb... <code> ${code}, <state> ${state}`,
         cause: error,
       });
     }
-    debug(12);
 
-    const { info, payload } = await google_process_cb_data(code);
-    debug(13);
-
-    const email = info.email;
+    const [
+      {
+        info: { email, scopes },
+        payload: { tokens: { access_token, refresh_token } },
+      },
+      ghost,
+    ] = await Promise.all([
+      google_process_cb_data(code),
+      db.ghost.findByPrimaryIndex("id", state).then((r) => {
+        if (!r?.value) {
+          throw new HTTPException(500, {
+            message: "ghost for session-candidate was not found",
+          });
+        }
+        return r.value;
+      }),
+    ]);
     const is_g_drive_scopes_present =
-      intersect(info.scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
-    debug(14);
+      intersect(scopes, GOOGLE_GDRIVE_SCOPES).length > 0;
 
     if (!email && !is_g_drive_scopes_present) {
-      debug(15);
-
       deleteCookie(c, AUTH_COOKIE_NAME);
-      debug(16);
 
       throw new HTTPException(500, {
         message: "Fail to process google cb",
         cause: "Missing email and g_drive scopes",
       });
     }
-    debug(17);
 
     const bucket = email
       ? await db.bucket.findByPrimaryIndex("email", email).then((
         r,
-      ) => r?.value)
+      ) => r?.value || null)
       : null;
-    debug(18);
 
     if (!is_g_drive_scopes_present && !bucket) {
-      debug(19);
+      if (email && access_token) {
+        await db.ghost.deleteByPrimaryIndex(
+          "id",
+          state,
+          {
+            consistency: "eventual",
+          },
+        );
 
-      await db.ghost.deleteByPrimaryIndex(
-        "id",
-        state,
-        {
-          consistency: "eventual",
-        },
-      );
-      debug(20);
+        const id = crypto.randomUUID();
+        await Promise.all([
+          db.ghost.add({
+            id,
+            access_token,
+            email: email,
+            user_id: ghost.user_id || id,
+          }),
+          db.ghost.deleteByPrimaryIndex("id", ghost.id),
+        ]);
 
-      const id = crypto.randomUUID();
-      await db.ghost.add({
-        id,
-        access_token: payload.tokens.access_token || null,
-        email: email!, /// ((!email && !is_gdrive) || !is_gdrive) => email!
-      });
-      debug(21);
+        const redirect_for_g_drive = google_sign_in_url({
+          scope: GOOGLE_GDRIVE_SCOPES,
+          state: id,
+          include_granted_scopes: true,
+          login_hint: email!,
+        });
 
-      const redirect_for_g_drive = google_sign_in_url({
-        scope: GOOGLE_GDRIVE_SCOPES,
-        state: id,
-        include_granted_scopes: true,
-        login_hint: email!,
-      });
-      debug(22);
+        return c.newResponse(null, {
+          status: 302,
+          headers: {
+            Location: redirect_for_g_drive,
+            ...(access_token &&
+              { "Authorization": `Bearer ${access_token}` }),
+          },
+        });
+      }
 
-      return c.newResponse(null, {
-        status: 302,
-        headers: {
-          Location: redirect_for_g_drive,
-          ...(payload.tokens.access_token &&
-            { "Authorization": `Bearer ${payload.tokens.access_token}` }),
-        },
+      throw new HTTPException(500, {
+        message: "Missing email/access_token and gDrive scopes",
       });
     }
-    debug(23);
 
-    const {
-      access_token,
-      refresh_token = bucket?.google_drive_authorization.refresh_token,
-    } = payload.tokens;
-    debug(24);
-
-    if (!refresh_token) {
-      debug(25);
-
+    const _refresh_token = refresh_token ||
+      bucket?.google_drive_authorization.refresh_token;
+    if (!_refresh_token) {
       deleteCookie(c, AUTH_COOKIE_NAME);
-      debug(26);
 
       throw new HTTPException(500, { message: "Missing google refresh token" });
     }
-    debug(27);
 
-    const ghost = await db.ghost.findByPrimaryIndex("id", state).then((r) =>
-      r?.value || null
-    );
-    debug(28);
-
-    if (!ghost) {
-      throw new HTTPException(500, {
-        message: "Missing state of candidate to authorize",
-      });
-    } else if (!ghost.email && !email) {
+    if (!ghost.email && !email) {
       throw new HTTPException(500, {
         message: "Missing email in google cb and ghost",
       });
     }
-    debug(29);
 
-    // TODO: check from here
     const _email = email || ghost.email!;
+
+    if (_email) {
+      throw new HTTPException(500, { message: "Missing _email" });
+    }
+
     const session_id = crypto.randomUUID();
-    debug(30);
 
     setCookie(c, AUTH_COOKIE_NAME, session_id, {
       domain: `.${Env.UI_URL!}`,
@@ -255,10 +225,8 @@ app
       sameSite: "Lax",
       secure: true,
     });
-    debug(31);
 
     if (!bucket) {
-      debug(32);
       const user_id = session_id;
       await Promise.all([
         db.user.add({ id: user_id }),
@@ -266,19 +234,18 @@ app
           user_id,
           email: _email,
           google_drive_authorization: {
-            access_token: payload.tokens.access_token!,
-            refresh_token,
+            access_token: access_token || ghost.access_token!,
+            refresh_token: _refresh_token,
           },
         }),
-        db.app_session.add({
-          email: _email,
-          session_id,
-          user_id,
-        }),
       ]);
-      debug(33);
     }
-    debug(34);
+
+    await db.app_session.add({
+      email: _email,
+      session_id,
+      user_id: ghost.user_id || session_id,
+    });
 
     return c.redirect(Env.UI_URL!);
   });

@@ -24,6 +24,7 @@ export const AppSession = z.object({
 });
 export const Ghost = z.object({
   id: z.string(),
+  user_id: z.string().nullable(),
   email: z.string().nullable(),
   access_token: z.string().nullable(),
 });
