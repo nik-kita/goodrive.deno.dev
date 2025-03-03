@@ -5,12 +5,18 @@ import {
   google_process_cb_data,
   ResultGoogleCpDataProcessing,
 } from "./google.service.ts";
+import { clean_auth_cookies } from "./x-actions.ts";
 
 export const auth_callback_machine = setup({
   types: {
     input: {} as tInput,
     output: {} as tOutput,
     context: {} as tCtx,
+  },
+  actions: {
+    clean_auth_cookies({ context: { c } }) {
+      clean_auth_cookies(c);
+    },
   },
   actors: {
     process_google_code: fromPromise<ResultGoogleCpDataProcessing, string>(
@@ -23,7 +29,7 @@ export const auth_callback_machine = setup({
   },
 })
   .createMachine({
-    /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgGMBDAGxICMiCBrfEABy1gEsAXZrDOgD0QEYATOgCe-AcgnIgA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QGMCGAbdAjVyDWAdAMoD2AtmAC4AWAlgHZQAEA7mPZawE4mMDEAbQAMAXUSgADiVi1KtXuJAAPREIA0IAJ6qAvno30SEOIrSYc+RVJlyFSZYgC0AFgAcG7QkeuA7AQCs+iBm2LiEAAo8yHCwTFAkJFDoYEzIRmBW0rLy9IoqCACMAGzuWogATEJCQSEWhKQUNAzMbBzcvFCZNjl5iMU+HhUFBOXlRf5F5YE6GrVhBADC5BLJlBn21tl2oPnqZQj+lQQAnKfHAMyux0Vuzpd6ekA */
     id: "callback",
     context({ input }) {
       return {
@@ -32,7 +38,16 @@ export const auth_callback_machine = setup({
     },
     initial: "Process google code",
     states: {
-      "Process google code": {},
+      "Process google code": {
+        invoke: {
+          src: "process_google_code",
+          input: ({ context: { gCode } }) => gCode,
+          onError: {
+            target: "Something went wrong",
+            actions: "clean_auth_cookies",
+          },
+        },
+      },
       "Something went wrong": {
         always: {
           target: "Complete",

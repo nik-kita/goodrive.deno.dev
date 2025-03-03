@@ -1,10 +1,11 @@
 import { Context } from "hono";
-import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
 import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE, User } from "./const.ts";
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
+import { clean_auth_cookies } from "./x-actions.ts";
 
 export const auth_sign_in_machine = setup({
   types: {
@@ -19,7 +20,7 @@ export const auth_sign_in_machine = setup({
   },
   actions: {
     clean_auth_cookies({ context: { c } }) {
-      deleteCookie(c, "auth");
+      clean_auth_cookies(c);
     },
   },
   actors: {
