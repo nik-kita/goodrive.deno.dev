@@ -1,6 +1,7 @@
 {
-  "deno.enable": true,
-  "cSpell.words": [
-    "GDRIVE"
-  ]
+    "deno.enable": true,
+    "editor.tabSize": 4,
+    "cSpell.words": [
+        "GDRIVE"
+    ]
 }

@@ -1,37 +1,37 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main, stage]
-  pull_request:
-    branches: [main, stage]
+    push:
+        branches: [main, stage]
+    pull_request:
+        branches: [main, stage]
 
 jobs:
-  deploy:
-    name: Deploy
-    environment: ${{(github.ref_name == 'main' && 'prod') || (github.ref_name == 'stage' && 'stage')}}
-    runs-on: ubuntu-latest
+    deploy:
+        name: Deploy
+        environment: ${{(github.ref_name == 'main' && 'prod') || (github.ref_name == 'stage' && 'stage')}}
+        runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write # Needed for auth with Deno Deploy
-      contents: read # Needed to clone the repository
+        permissions:
+            id-token: write # Needed for auth with Deno Deploy
+            contents: read # Needed to clone the repository
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Clone repository
+              uses: actions/checkout@v4
 
-      - name: Install Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+            - name: Install Deno
+              uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
 
-      - name: Load dotenv from github secrets
-        run: >
-          echo """${{secrets.DOTENV_CONTENT}}""" > .env
+            - name: Load dotenv from github secrets
+              run: >
+                  echo """${{secrets.DOTENV_CONTENT}}""" > .env
 
-      - name: Upload to Deno Deploy ${{env.DENO_PROJECT_NAME}}
-        uses: denoland/deployctl@v1
-        with:
-          project: ${{vars.DENO_PROJECT_NAME}}
-          entrypoint: "main.ts"
-          root: ""
+            - name: Upload to Deno Deploy ${{env.DENO_PROJECT_NAME}}
+              uses: denoland/deployctl@v1
+              with:
+                  project: ${{vars.DENO_PROJECT_NAME}}
+                  entrypoint: "main.ts"
+                  root: ""
