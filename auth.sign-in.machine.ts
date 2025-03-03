@@ -2,7 +2,12 @@ import { Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE, User } from "./const.ts";
+import {
+  GOOGLE_EMAIL_SCOPE,
+  GOOGLE_OPEN_ID_SCOPE,
+  Session,
+  User,
+} from "./const.ts";
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
@@ -26,9 +31,9 @@ export const auth_sign_in_machine = setup({
   actors: {
     get_user_from_prev_session: fromPromise<User, string>(async ({ input }) => {
       const user = await kv.get<string>(["user", "by-session", input]).then(
-        (mu) => {
-          if (mu.value) {
-            return kv.get<User>(["user", mu.value]);
+        (maybe_user_id) => {
+          if (maybe_user_id.value) {
+            return kv.get<User>(["user", maybe_user_id.value]);
           }
 
           return null;
@@ -45,9 +50,13 @@ export const auth_sign_in_machine = setup({
       async ({ input }) => {
         const session_id = crypto.randomUUID();
         await Promise.all([
-          kv.set(["session", session_id], {
-            session_id,
-          }),
+          kv.set(
+            ["session", session_id],
+            {
+              id: session_id,
+              __typename: "Session",
+            } satisfies Session,
+          ),
           kv.set(["session", "where-unknown", session_id], session_id),
         ]);
         const redirect_url = google_sign_in_url({
