@@ -107,7 +107,7 @@ export const auth_sign_in_machine = setup({
     },
     after: {
         max_total_time: {
-            target: "Something went wrong",
+            target: "Complete",
             actions: ["clean_auth_cookies"],
         },
     },
@@ -167,7 +167,7 @@ export const auth_sign_in_machine = setup({
                     ),
                 },
                 onError: {
-                    target: "Something went wrong",
+                    target: "Complete",
                 },
             },
         },
@@ -181,22 +181,6 @@ export const auth_sign_in_machine = setup({
                             {
                                 message: "Not required sign-in request",
                                 cause: "You are already logged in",
-                            },
-                        ),
-                    },
-                }),
-            },
-        },
-        "Something went wrong": {
-            always: {
-                target: "Complete",
-                actions: assign({
-                    output: {
-                        exception: new HTTPException(
-                            500,
-                            {
-                                message: "Something went wrong (x-sign-in)",
-                                cause: "not covered scenario",
                             },
                         ),
                     },
