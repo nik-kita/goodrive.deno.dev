@@ -1,12 +1,14 @@
 // deno-lint-ignore-file no-unused-vars
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono, z } from "@hono/zod-openapi";
+import { getCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { createActor, OutputFrom } from "xstate";
 import { auth_callback_machine } from "./auth.callback.machine.ts";
 import { auth_sign_in_machine } from "./auth.sign-in.machine.ts";
+import { Session, User } from "./const.ts";
 import { Env } from "./env.ts";
-import { __drop__all__data__in__kv__ } from "./kv.ts";
+import { __drop__all__data__in__kv__, kv } from "./kv.ts";
 import { mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
@@ -144,9 +146,53 @@ app
                 description: "Don't remember who you are!",
             },
         },
-    }, (c) => {
-        throw new HTTPException(500, {
-            message: "Is not implemented yet!",
+    }, async (c) => {
+        const session_id = getCookie(c, "session");
+
+        if (!session_id) {
+            throw new HTTPException(403, {
+                message: "Who you are?",
+                cause: "no session",
+            });
+        }
+
+        const session = await kv.get<Session>(["session", session_id]);
+
+        if (!session.value) {
+            throw new HTTPException(403, {
+                message: "Who you are??",
+                cause: "no found session",
+            });
+        }
+
+        if (session.value._tag === "Session::unknown") {
+            return c.json({
+                message: "You Are Someone",
+                description:
+                    "Though your session is valid and active you are not authorize any google-drive",
+            });
+        }
+
+        const user = await kv.get<User>(["user", session.value.user_id]);
+
+        if (!user.value) {
+            throw new HTTPException(500, {
+                message: "Sorry. We forgot who you are, mr." +
+                    session.value.email,
+                cause:
+                    "the session is exists and valid, but user by <user_id> from it was no found",
+            });
+        }
+
+        return c.json({
+            message: "Bingo!",
+            iam: {
+                ...user.value,
+                buckets: Array.from(user.value.buckets.values()).map((
+                    { email },
+                ) => email),
+                session_email: session.value.email,
+            },
         });
     })
     .doc("/api", {
