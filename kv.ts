@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { openKvToolbox } from "@kitsonk/kv-toolbox";
 import { collection, kvdex } from "@olli/kvdex";
 
 export const Bucket = z.object({
@@ -38,7 +37,7 @@ export const Secret = z.object({
   description: z.string().optional(),
 });
 export type Secret = z.infer<typeof Secret>;
-export const kv = await openKvToolbox({});
+export const kv = await Deno.openKv();
 export const db = kvdex({
   schema: {
     bucket: collection(

@@ -1,9 +1,10 @@
 import { Context } from "hono";
-import { deleteCookie, getCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { google_sign_in_url } from "./google.service.ts";
 import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE } from "./const.ts";
+import { google_sign_in_url } from "./google.service.ts";
+import { kv } from "./kv.ts";
 
 export const auth_sign_in_machine = setup({
   types: {
@@ -23,15 +24,38 @@ export const auth_sign_in_machine = setup({
   },
   actors: {
     get_user_from_prev_session: fromPromise<User, string>(async ({ input }) => {
-      return {} as User;
+      const user = await kv.get<string>(["user", "by-session", input]).then(
+        (mu) => {
+          if (mu.value) {
+            return kv.get<User>(["user", mu.value]);
+          }
+
+          return null;
+        },
+      );
+
+      if (!user) {
+        throw new Error("Prev session is not valid");
+      }
+
+      return user.value!;
     }),
-    prepare_redirect_to_google_sign_in: fromPromise<void, Context>(
+    prepare_redirect_to_google_sign_in: fromPromise<string, Context>(
       async ({ input }) => {
         const session_id = crypto.randomUUID();
+        await Promise.all([
+          kv.set(["session", session_id], {
+            session_id,
+          }),
+          kv.set(["session", "where-unknown", session_id], session_id),
+        ]);
         const redirect_url = google_sign_in_url({
           scope: [GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE],
           state: session_id,
         });
+        setCookie(input, "session", session_id);
+
+        return redirect_url;
       },
     ),
   },
@@ -87,10 +111,10 @@ export const auth_sign_in_machine = setup({
         input: ({ context: { c } }) => c,
         onDone: {
           target: "Complete",
-          actions: assign(({ context: { c } }) => {
+          actions: assign(({ context: { c }, event }) => {
             return {
               output: {
-                redirect: c.redirect("/todo"),
+                redirect: c.redirect(event.output),
               },
             };
           }),
@@ -162,3 +186,14 @@ type User = {
   another_emails: string[];
   session_email: string;
 };
+
+const EmptyObj = {};
+type EmptyObj = typeof EmptyObj;
+type Session =
+  & {
+    id: string;
+  }
+  & ({
+    user_id: string;
+    email: string;
+  } | EmptyObj);
