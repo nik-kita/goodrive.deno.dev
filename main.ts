@@ -147,7 +147,10 @@ app
             },
         },
     }, async (c) => {
-        const session_id = getCookie(c, "session", 'secure');
+        const session_id = getCookie(c, "session");
+        console.log(getCookie(c));
+        console.log(getCookie(c, 'session'));
+        console.log(getCookie(c, 'session', 'secure'));
 
         if (!session_id) {
             throw new HTTPException(403, {
