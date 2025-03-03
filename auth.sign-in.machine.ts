@@ -1,3 +1,4 @@
+import { SECOND } from "@std/datetime/constants";
 import { Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
@@ -11,7 +12,6 @@ import {
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
-import { SECOND } from "@std/datetime/constants";
 
 export const auth_sign_in_machine = setup({
     types: {
@@ -217,8 +217,14 @@ type tCtx = tInput & {
 };
 type tOutput = {
     response: Response;
+    redirect?: never;
+    exception?: never;
 } | {
     redirect: ReturnType<Context["redirect"]>;
+    response?: never;
+    exception?: never;
 } | {
     exception: HTTPException;
+    response?: never;
+    redirect?: never;
 };

@@ -3,6 +3,8 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { getCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
+import { createActor, OutputFrom } from "xstate";
+import { auth_sign_in_machine } from "./auth.sign-in.machine.ts";
 import { AUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { __drop__all__data__in__kv__ } from "./kv.ts";
@@ -26,7 +28,33 @@ app
             },
         },
     }, async (c) => {
-        return c.redirect("/");
+        const sign_in_actor = createActor(auth_sign_in_machine, {
+            input: {
+                c,
+            },
+        });
+        const output = await new Promise<OutputFrom<typeof sign_in_actor>>(
+            (resolve, reject) => {
+                sign_in_actor.subscribe((s) => {
+                    console.log(s.value);
+                    console.log(s.context);
+
+                    if (s.status === "active") {}
+                    else if (s.status === "done") {
+                        resolve(s.output);
+                    } else {
+                        reject(s.toJSON());
+                    }
+                });
+                sign_in_actor.start();
+            },
+        );
+
+        if (output.exception) {
+            throw output.exception;
+        }
+
+        return output.redirect || output.response;
     });
 app
     .openapi({
