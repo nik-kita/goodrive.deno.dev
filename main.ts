@@ -149,8 +149,10 @@ app
     }, async (c) => {
         const session_id = getCookie(c, "session");
         console.log(getCookie(c));
-        console.log(getCookie(c, 'session'));
-        console.log(getCookie(c, 'session', 'secure'));
+        console.log('session', getCookie(c, 'session'));
+        console.log('session secure', getCookie(c, 'session', 'secure'));
+        console.log('__Secure-session', getCookie(c, '__Secure-session'));
+        console.log('__Secure-session secure', getCookie(c, '__Secure-session', 'secure'));
 
         if (!session_id) {
             throw new HTTPException(403, {
