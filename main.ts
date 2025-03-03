@@ -32,10 +32,13 @@ app
             (resolve, reject) => {
                 sign_in_actor.subscribe((s) => {
                     console.log(s.value);
-                    console.log(s.context);
+                    console.log(s.context.output);
 
-                    if (s.status === "active") { }
+                    if (s.status === "active") {
+                        console.log('...active')
+                    }
                     else if (s.status === "done") {
+                        console.log('Done!')
                         resolve(s.output);
                     } else {
                         reject(s.toJSON());
