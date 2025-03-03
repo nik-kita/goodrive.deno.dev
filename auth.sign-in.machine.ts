@@ -92,6 +92,7 @@ export const auth_sign_in_machine = setup({
                     ],
                     state: session_id,
                 });
+                console.log(Env);
                 setCookie(input, "session", session_id, {
                     domain: `.${Env.UI_URL}`,
                     httpOnly: true,

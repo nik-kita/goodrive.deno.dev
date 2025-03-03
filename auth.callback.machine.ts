@@ -42,6 +42,7 @@ const machine = setup({
             tActor["parse_google_code_and_state"]["input"]
         >(
             async ({ input: { code, state } }) => {
+                console.log("parse_google_code_and_state");
                 const [g, maybeSession] = await Promise.all([
                     google_process_cb_data(code),
                     kv.get<Session>(["session", state]),
@@ -69,6 +70,9 @@ const machine = setup({
                     "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
                 ]["input"]
             >(async ({ input: { session_id, g } }) => {
+                console.log(
+                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental",
+                );
                 const redirect_for_gDrive = google_sign_in_url(
                     {
                         scope: GOOGLE_GDRIVE_SCOPES,
@@ -88,6 +92,7 @@ const machine = setup({
             tActor["update_user_with_new_refresh"]["output"],
             tActor["update_user_with_new_refresh"]["input"]
         >(async ({ input: { g, session } }) => {
+            console.log("update_user_with_new_refresh");
             const key = ["user", session.user_id!];
             const user = await kv.get<User>(key);
 
@@ -111,6 +116,7 @@ const machine = setup({
             tActor["create_user_and_update_session"]["output"],
             tActor["create_user_and_update_session"]["input"]
         >(async ({ input: { g, session_id } }) => {
+            console.log("create_user_and_update_session");
             const user_id = crypto.randomUUID();
             await Promise.all([
                 kv.set(
@@ -173,7 +179,7 @@ const machine = setup({
                         }),
                     },
                     onError: {
-                        target: "#callback.Complete",
+                        target: "Complete",
                         actions: [
                             "clean_auth_cookies",
                             assign(({ event }) => ({

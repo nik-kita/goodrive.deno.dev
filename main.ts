@@ -108,7 +108,7 @@ app
             (resolve, reject) => {
                 callback_actor.subscribe((s) => {
                     console.log(s.value);
-                    console.log(s.context);
+                    console.log(s.context.output);
 
                     if (s.status === "active") {}
                     else if (s.status === "done") {
