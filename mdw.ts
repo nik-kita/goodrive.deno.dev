@@ -1,10 +1,7 @@
-import { SECOND } from "@std/datetime";
-import { deleteCookie, getCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { createMiddleware } from "hono/factory";
-import { AppCtx, AUTH_COOKIE_NAME } from "./const.ts";
+import { AppCtx } from "./const.ts";
 import { Env } from "./env.ts";
-import { AppSession, db } from "./kv.ts";
 
 export const mdw_cors = () => {
     if (Env.RUNTIME_ENV === "prod" || Env.RUNTIME_ENV === "stage") {
@@ -13,84 +10,6 @@ export const mdw_cors = () => {
 
     return cors();
 };
-
-export type mdw_authentication = AppCtx<
-    {
-        auth: {
-            as: "guest";
-        } | {
-            as: "user";
-            session: AppSession;
-        };
-    }
->;
-export const mdw_authentication = createMiddleware<
-    mdw_authentication
->(async (c, next) => {
-    const auth_cookie = getCookie(c, AUTH_COOKIE_NAME);
-
-    if (!auth_cookie) {
-        c.set("auth", { as: "guest" });
-        await next();
-
-        return;
-    }
-
-    const prev_session = await db.app_session.findByPrimaryIndex(
-        "session_id",
-        auth_cookie,
-    )
-        .then((r) => r?.value || null);
-
-    if (!prev_session) {
-        console.warn(
-            `On practice such case should not be possible... if !prev_session in ${import.meta.filename}`,
-        );
-
-        deleteCookie(c, AUTH_COOKIE_NAME);
-        c.set("auth", { as: "guest" });
-
-        await next();
-
-        return;
-    }
-
-    const now = new Date();
-    const is_active_session = prev_session.updated_at.getTime() +
-            Env.AUTH_SESSION_MAX_SILENCE_DURATION_IN_SECONDS *
-                SECOND >
-        now.getTime();
-
-    if (!is_active_session) {
-        console.log(1.6);
-        deleteCookie(c, AUTH_COOKIE_NAME);
-        c.set("auth", { as: "guest" });
-
-        await Promise.all([
-            next(),
-            db.app_session.deleteByPrimaryIndex(
-                "session_id",
-                prev_session.session_id,
-            ),
-        ]);
-
-        return;
-    }
-
-    c.set("auth", { as: "user", session: prev_session });
-
-    await Promise.all([
-        db.app_session.updateByPrimaryIndex(
-            "session_id",
-            prev_session.session_id,
-            { updated_at: now },
-            { strategy: "merge-shallow" },
-        ),
-        next(),
-    ]);
-
-    return;
-});
 
 export const mdw_attach_referer = createMiddleware<
     AppCtx<{
