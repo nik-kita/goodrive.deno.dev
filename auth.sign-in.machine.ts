@@ -11,6 +11,7 @@ import {
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
+import { SECOND } from "@std/datetime/constants";
 
 export const auth_sign_in_machine = setup({
     types: {
@@ -58,7 +59,7 @@ export const auth_sign_in_machine = setup({
                 return user.value!;
             },
         ),
-        prepare_redirect_to_google_sign_in: fromPromise<
+        prepare_redirect_to_google_sign_in_with_email_scopes: fromPromise<
             string,
             Context
         >(
@@ -73,11 +74,15 @@ export const auth_sign_in_machine = setup({
                             _tag: "Session::unknown",
                         } satisfies Session,
                     ),
-                    kv.set([
-                        "session",
-                        "where-unknown",
+                    kv.set(
+                        [
+                            "session",
+                            "where-unknown",
+                            session_id,
+                        ],
                         session_id,
-                    ], session_id),
+                        { expireIn: SECOND * 60 * 5 },
+                    ),
                 ]);
                 const redirect_url = google_sign_in_url({
                     scope: [
@@ -114,9 +119,9 @@ export const auth_sign_in_machine = setup({
     initial: "Check prev session",
     states: {
         "Check prev session": {
-            initial: "Check is auth cookies exists?",
+            initial: "Check is auth cookies exists",
             states: {
-                "Check is auth cookies exists?": {
+                "Check is auth cookies exists": {
                     always: [
                         {
                             guard: "is_prev_session_exists",
@@ -150,7 +155,7 @@ export const auth_sign_in_machine = setup({
         },
         "Redirect someone to google with minimal scopes": {
             invoke: {
-                src: "prepare_redirect_to_google_sign_in",
+                src: "prepare_redirect_to_google_sign_in_with_email_scopes",
                 input: ({ context: { c } }) => c,
                 onDone: {
                     target: "Complete",

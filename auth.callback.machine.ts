@@ -1,9 +1,10 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { Session } from "./const.ts";
+import { GOOGLE_GDRIVE_SCOPES, Session } from "./const.ts";
 import {
     google_process_cb_data,
+    google_sign_in_url,
     ResultGoogleCpDataProcessing,
 } from "./google.service.ts";
 import { kv, User } from "./kv.ts";
@@ -18,6 +19,16 @@ const machine = setup({
     guards: {
         is_new_refresh_token_present({ context }) {
             return !!context.g?.payload.tokens.refresh_token;
+        },
+        is_session_active(
+            {
+                context,
+            },
+        ) {
+            return context
+                .session!
+                ._tag ===
+                "Session::normal";
         },
     },
     actions: {
@@ -49,10 +60,44 @@ const machine = setup({
                 };
             },
         ),
+        prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental:
+            fromPromise<
+                tActor[
+                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
+                ]["output"],
+                tActor[
+                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
+                ]["input"]
+            >(async ({ input: { session_id, g } }) => {
+                const redirect_for_gDrive = google_sign_in_url(
+                    {
+                        scope: GOOGLE_GDRIVE_SCOPES,
+                        state: session_id,
+                        include_granted_scopes: true,
+                        login_hint: g.info.email!,
+                    },
+                );
+
+                return {
+                    redirect_for_gDrive,
+                    authorization_header: `Bearer ${g.payload.tokens
+                        .access_token!}`,
+                };
+            }),
+        update_user_with_new_refresh: fromPromise<
+            tActor["update_user_with_new_refresh"]["output"],
+            tActor["update_user_with_new_refresh"]["input"]
+        >(async ({ input: { g } }) => {
+        }),
+        create_user_and_update_session: fromPromise<
+            tActor["create_user_and_update_session"]["output"],
+            tActor["create_user_and_update_session"]["input"]
+        >(async ({ input: { g, session_id } }) => {
+        }),
     },
 })
     .createMachine({
-        /** @xstate-layout N4IgpgJg5mDOIC5QGMCGAbdAjVyDWAdAAqoBOsYABFAPY1TpXI0RWoB2ElsALqj2ADEEGuzAEAluwBuNPOLSYc+YmQrU6DJizadufAQimy0PCaIDaABgC61m4lAAHGrAlnRjkAA9EAWgA2AFYAGhAAT0QADiCAX1iwxWxcQhJyKlp6RkpmVkoOLl5+ITBSUhpSAid0fgAzCoBbAiTlVLUMzWzc3UKDMCMZGlNzdnt7Lxc3D3YvXwQARnmoqLDIhABOK3jEjGSVInLkODd2KG5jkfy9TK1KCH5UAgBhAAswfEoJWEoxAHdKUhgWqA2AvShOEFgdg8T7sDRZKhOVDhdA0VAQQTjJAgSbuEazfzzADsRNWiAALESAEwEIlxBIgFopYiHC6nc6wNyiK5cG7Ze58Z5vD5fH5gf6A4FwMEQuBQmFSeG3JEotEYizzBzY3HTAkLADM8zJCEpNLp20Zu1aLKGbLOFE5lwKSv5DwIABU3oDPt8AHIAeQBQJBYMVfMRyNR6KF7zwPo5XLhGEB6PC+WQZmkQixzlceM82Lm6yp62NQXJWwt7B08GxTPwEzzusL-n1huNfipVipFvrbXSLu0eWdRQEjam+JbCCJMVpUU2ASpoQihPm5II9J2SmZB1tjvZDsTPMHdwe4-zMynnai+uNVP1Vg3vatO9Z+-tF25zvDp8Fr1j8Z-EGUqguCkLQrCJ4qlGEDns2oBzH48xUuSxqGlEz7bvsb4nB+jpftcnRUAKjyelQQGSiG8ayhQEFhkR4KRmqcGTgh-j3suaxRFYARPgyfY2kc74Jk6hEIr+pFelQooBsBVH0eJ0HMdqTasT4iD6kSVhoUS67kusBlRJS5LIfMVjrOSmF7KkOFSHhR7fgxJEelJ8ayZR0qQT+SnRv+IrfIeTroCmEBprgmZgCxBZsSaJIEFY5IBFEdLGolPb8S+2F7rhIkEbyTlumR3oyYGHmgQpypMdGUWXjFJkrCuCBBOsRIblY7XzEES7JfO8xWdaTw0A01RgGOKkTtF6kbGZBDrElKWNWZnUEEu8TxEAA */
+        /** @xstate-layout N4IgpgJg5mDOIC5QGMCGAbdAjVyDWAdAAqoBOsYABFAPY1TpXI0RWoB2ElsALqj2ADEEGuzAEAluwBuNPOLSYc+YmQrU6DJizadufAQimy0PCaIDaABgC61m4lAAHGrAlnRjkAA9EATgBmABYAGhAAT0QAWgB2PwBfeLDFbFxCEnIqWnpGSmZWSg4uXn4hMFJSGlICJ3R+ADMqgFsCFOV0tSzNXPzdYoMwIxkaU3N2e3svFzcPdi9fBABGIIAmALDIhBjFghiY4ICYgFZE5IxUlSJK5Dg3dihuW7HCvWytSgh+VAIAYQALMD4SgSWCUMQAd0opDA9WhsD+Ly4UAAIqQJNIqLBmE44JQnHCwOweMD2BoclQnKhwugaKgIIJJkgQNN3GN5tEggAODaIYIANlOIDaaWI1ye90esDcokRZPenz4vwBQJBYLAkOhsLgCKK1FR6Mx2Nx+LghOJUjluUp1Np9IsiwcTJZs3ZCBWRz8PIQQT5nMFwsuYqlUgeFGDMt1b1yCu+ABUAWqNTC4X8Qnq0RjuEbQWQKQSiSTLRSqTS6UrAXhgaCw9LSRhoXTwoVkGYMQzbFNXKzPEyFlE+XyggQrDErAFFu6vQEAv7zu1RSNxaGnhHXt0qDGCPHylRVQA5ADyUOT2sLUeLNrL-wrVcltcK6AbECbuFbQkZzi7Lt7iE5RxWXrHEEs5KCKVyLsGEo1s8kbrh8XxbgC0K3oex5avCZ5wdapYQOWKrViudaPmAjbNm+DIOp2Mxsj+CCcocBB+Csfi+scXp+FYnK7CcSRCnOIoAEqQBI0IttwNBNGAohUDwNBFpQ4LuAiKIZoaNA4qCAAUUjINCklEhgACUwjSZIwzyK0-EqEJEAiYCxKwBJUliJQsnyYpPDKfqmZYupuLaewulgPpfDoIZQwmPwYwTB2TpfjRoALH4QSehEiATkcfq8QGhA2XZYmOZJ0muXJ54KUp6YGlmflaTpelmkZgjlJU1S1A0zSWaB1nCaJDlOcVbllR5XmqdVGmUAFQUhUZEUjFFli2B+zLxT2iXpe6oRpUsAR+IsiS8ewOjwEyOVUd2cy0VEf6pZsUQBHyATDlYz0jnyzE7UERwztlVkdJk8m9LKJQCGd35rXRay7JyHFvUcXpRCsfIxAQPFnF16RBncy7hnWa7kvBfCgwlPjRJyiyLPDKzHCjL2ve9yVfSBFwYxBWN3jBePygh174YmaEprKKlVb540mhQBYWmV2G2kTq0k0sRx8l6iycUz87gTckHY-esH45u2585qKZpkLPnZoUyFi2amH49LdKyxd4OxA98OLJyWVo8zC6a2z0GrkicH6wmEL89qJveWp425ni+bmqSUslraeGVqqftEU+L4tgaDuurEixw1tUQq1YKNq2BmMhuz-vyUHVAh0bYeVWbNUW3mpoS-HWGJ2WACqTgKlQACuFCkOVnmGye8I55do5cUcRw+pybFbSsbtl4GrOV2nguBwhBv15PqZN5HuLR1bHfyXbuE-A2Ah88P5SyoP-elFXjvLdRct9nybtekEVh8lLj9dG3slxvx3nrPeSFdyglQg3DCksu6XggNPcGwQVjDkXsvTYfIWJAM9urCuUFCIQK5oqbcyF9xHngQiRBttu7X2VCnAiOMHwZzItnOKn934LB2iXKwWCC6bBiJyYCwCvZ5V6uJIqLlBpwWGsfMa-k6rBQamFVB8sohMUYjEPkC9AhUzdgA5WKxV4EHdOvQgPwJK1DACDLh51XQqw4oxViQj-D3XMTxRIQA */
         id: "callback",
         context({ input }) {
             return {
@@ -104,21 +149,114 @@ const machine = setup({
                 },
             },
             "Processing session and google data": {
-                initial: "Check is new refresh present in google payload",
+                initial:
+                    "Check is new refresh and gDrive scopes present in google payload",
                 states: {
-                    "Check is new refresh present in google payload": {
-                        always: [
-                            {
-                                target:
-                                    "The new refresh is present in google payload",
-                                guard: "is_new_refresh_token_present",
+                    "Check is new refresh and gDrive scopes present in google payload":
+                        {
+                            always: [
+                                {
+                                    target:
+                                        "The new refresh, gDrive scopes are present in google payload",
+                                    guard: "is_new_refresh_token_present",
+                                },
+                                {
+                                    target:
+                                        "There is NO refresh in google payload",
+                                },
+                            ],
+                        },
+                    "The new refresh, gDrive scopes are present in google payload":
+                        {
+                            initial: "Check is session already active",
+                            states: {
+                                "Check is session already active": {
+                                    always: [
+                                        {
+                                            guard: "is_session_active",
+                                            target:
+                                                "Update user with new refresh",
+                                        },
+                                        "Create new user and update session",
+                                    ],
+                                },
+                                "Update user with new refresh": {
+                                    invoke: {
+                                        src: "update_user_with_new_refresh",
+                                        input({ context: { g } }) {
+                                            return {
+                                                g: g!,
+                                            };
+                                        },
+                                        onDone: {
+                                            target: "#callback.Complete",
+                                            actions: assign(
+                                                (
+                                                    { context: { c, session } },
+                                                ) => {
+                                                    return {
+                                                        output: {
+                                                            success_complete_payload:
+                                                                {
+                                                                    c,
+                                                                    session_id:
+                                                                        session!
+                                                                            .id,
+                                                                    email:
+                                                                        session!
+                                                                            .email!,
+                                                                    user_id:
+                                                                        session!
+                                                                            .user_id!,
+                                                                },
+                                                        },
+                                                    };
+                                                },
+                                            ),
+                                        },
+                                        onError: "#callback.Complete",
+                                    },
+                                },
+                                "Create new user and update session": {
+                                    invoke: {
+                                        src: "create_user_and_update_session",
+                                        input({ context: { g, session } }) {
+                                            return {
+                                                g: g!,
+                                                session_id: session!.id,
+                                            };
+                                        },
+                                        onDone: {
+                                            target: "#callback.Complete",
+                                            actions: assign(
+                                                (
+                                                    { context: { c, session } },
+                                                ) => {
+                                                    return {
+                                                        output: {
+                                                            success_complete_payload:
+                                                                {
+                                                                    c,
+                                                                    session_id:
+                                                                        session!
+                                                                            .id,
+                                                                    email:
+                                                                        session!
+                                                                            .email!,
+                                                                    user_id:
+                                                                        session!
+                                                                            .user_id!,
+                                                                },
+                                                        },
+                                                    };
+                                                },
+                                            ),
+                                        },
+                                        onError: "#callback.Complete",
+                                    },
+                                },
                             },
-                            {
-                                target: "There is NO refresh in google payload",
-                            },
-                        ],
-                    },
-                    "The new refresh is present in google payload": {},
+                        },
                     "There is NO refresh in google payload": {
                         initial: "Check is session already active",
                         states: {
@@ -126,16 +264,7 @@ const machine = setup({
                                 always: [
                                     {
                                         target: "#callback.Complete",
-                                        guard(
-                                            {
-                                                context,
-                                            },
-                                        ) {
-                                            return context
-                                                .session!
-                                                ._tag ===
-                                                "Session::normal";
-                                        },
+                                        guard: "is_session_active",
                                         actions: assign(
                                             {
                                                 output: {
@@ -151,10 +280,41 @@ const machine = setup({
                                             },
                                         ),
                                     },
+                                    "#callback.Redirect someone to google with gDrive scopes (incremental)",
                                 ],
                             },
-                            "": {},
                         },
+                    },
+                },
+            },
+            "Redirect someone to google with gDrive scopes (incremental)": {
+                invoke: {
+                    src: "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental",
+                    input({ context: { g, session } }) {
+                        return {
+                            g: g!,
+                            session_id: session!.id,
+                        };
+                    },
+                    onDone: {
+                        target: "Complete",
+                        actions: assign(({ event, context: { c } }) => {
+                            return {
+                                output: {
+                                    redirect: c.newResponse(null, {
+                                        headers: {
+                                            Location: event.output
+                                                .redirect_for_gDrive,
+                                            Authorization: event.output
+                                                .authorization_header,
+                                        },
+                                    }),
+                                },
+                            };
+                        }),
+                    },
+                    onError: {
+                        target: "Complete",
                     },
                 },
             },
@@ -181,6 +341,15 @@ type tInput = {
 };
 type tOutput = {
     exception: HTTPException;
+} | {
+    redirect: ReturnType<Context["redirect" | "newResponse"]>;
+} | {
+    success_complete_payload: {
+        c: Context;
+        session_id: string;
+        user_id: string;
+        email: string;
+    };
 };
 
 type tCtx = tInput & {
@@ -198,6 +367,29 @@ type tActor = {
             state: string;
         };
         output: { g: ResultGoogleCpDataProcessing; session: Session };
+    };
+    prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental: {
+        input: {
+            session_id: string;
+            g: ResultGoogleCpDataProcessing;
+        };
+        output: {
+            redirect_for_gDrive: string;
+            authorization_header: string;
+        };
+    };
+    update_user_with_new_refresh: {
+        input: {
+            g: ResultGoogleCpDataProcessing;
+        };
+        output: void;
+    };
+    create_user_and_update_session: {
+        input: {
+            g: ResultGoogleCpDataProcessing;
+            session_id: string;
+        };
+        output: void;
     };
 };
 
