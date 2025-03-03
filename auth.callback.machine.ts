@@ -387,9 +387,15 @@ type tInput = {
 };
 type tOutput = {
     exception: HTTPException;
+    redirect?: never;
+    success_complete_payload?: never;
 } | {
     redirect: ReturnType<Context["redirect" | "newResponse"]>;
+    exception?: never;
+    success_complete_payload?: never;
 } | {
+    redirect?: never;
+    exception?: never;
     success_complete_payload: {
         c: Context;
         session_id: string;

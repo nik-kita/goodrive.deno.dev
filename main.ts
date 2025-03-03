@@ -1,11 +1,10 @@
 // deno-lint-ignore-file no-unused-vars
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono, z } from "@hono/zod-openapi";
-import { getCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { createActor, OutputFrom } from "xstate";
+import { auth_callback_machine } from "./auth.callback.machine.ts";
 import { auth_sign_in_machine } from "./auth.sign-in.machine.ts";
-import { AUTH_COOKIE_NAME } from "./const.ts";
 import { Env } from "./env.ts";
 import { __drop__all__data__in__kv__ } from "./kv.ts";
 import { mdw_cors, mdw_ui_redirect_catch_all } from "./mdw.ts";
@@ -17,11 +16,7 @@ app
     .openapi({
         path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
         method: "get",
-        middleware: [
-            mdw_ui_redirect_catch_all,
-            // @ts-ignore
-            mdw_authentication,
-        ],
+        middleware: [mdw_ui_redirect_catch_all],
         responses: {
             200: {
                 description: "Authenticate user. Obtain email.",
@@ -39,7 +34,7 @@ app
                     console.log(s.value);
                     console.log(s.context);
 
-                    if (s.status === "active") {}
+                    if (s.status === "active") { }
                     else if (s.status === "done") {
                         resolve(s.output);
                     } else {
@@ -67,15 +62,7 @@ app
             },
         },
     }, (c) => {
-        const state: {
-            auth_cookie: string | undefined;
-        } = {
-            auth_cookie: getCookie(c, AUTH_COOKIE_NAME),
-        };
-
-        return c.redirect(
-            `${Env.API_URL}/${Env.API_ENDPOINT_AUTH_CALLBACK_GOOGLE}`,
-        );
+        throw new HTTPException(500, { message: "Is not implemented yet" });
     });
 app
     .openapi({
@@ -99,7 +86,46 @@ app
             },
         },
     }, async (c) => {
-        return c.redirect(Env.UI_URL!);
+        const { code, error, state } = c.req.valid("query");
+
+        if (error || !code || !state) {
+            throw new HTTPException(500, {
+                message:
+                    `Fail to process google cb... <code> ${code}, <state> ${state}`,
+                cause: error,
+            });
+        }
+        const callback_actor = createActor(auth_callback_machine, {
+            input: {
+                c,
+                gCode: code,
+                state,
+            },
+        });
+        const output = await new Promise<OutputFrom<typeof callback_actor>>(
+            (resolve, reject) => {
+                callback_actor.subscribe((s) => {
+                    console.log(s.value);
+                    console.log(s.context);
+
+                    if (s.status === "active") { }
+                    else if (s.status === "done") {
+                        resolve(s.output);
+                    } else {
+                        reject(s.toJSON());
+                    }
+                });
+                callback_actor.start();
+            },
+        );
+
+        if (output.exception) {
+            throw output.exception;
+        } else if (output.success_complete_payload) {
+            return output.success_complete_payload.c.redirect(Env.UI_URL!);
+        }
+
+        return output.redirect;
     });
 app
     .openapi({
