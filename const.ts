@@ -38,19 +38,18 @@ export type User = {
   another_emails: string[];
   session_email: string;
 };
-export type Session<T extends "unknown" | "normal" | string = string> =
+export type Session =
   & {
     __typename: "Session";
     id: string;
+    email?: string | undefined | never;
+    user_id?: string | undefined | never;
   }
-  & (T extends "normal" ? {
-      user_id: string;
-      email: string;
-    }
-    : EmptyObj);
-
-export const is_session_normal = (
-  session: Session,
-): session is Session<"normal"> => {
-  return !!(session as Session<"normal">).user_id;
-};
+  & ({
+    _tag: "Session::unknown";
+    email?: string | undefined;
+  } | {
+    _tag: "Session::normal";
+    user_id: string;
+    email: string;
+  });

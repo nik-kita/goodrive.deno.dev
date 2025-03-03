@@ -1,14 +1,13 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { is_session_normal, Session } from "./const.ts";
+import { Session } from "./const.ts";
 import {
   google_process_cb_data,
   ResultGoogleCpDataProcessing,
 } from "./google.service.ts";
 import { kv, User } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
-import { eventNames } from "node:process";
 
 const machine = setup({
   types: {
@@ -19,6 +18,9 @@ const machine = setup({
   guards: {
     is_some_user_case(_, ctx: tCtx) {
       return !!ctx.user;
+    },
+    is_unknown_session_has_google_access_token(_, unknown_session?: Session) {
+      return !!unknown_session && !"TODO".length;
     },
   },
   actions: {
@@ -42,7 +44,7 @@ const machine = setup({
           throw new Error("Unable to resolve <state> from google res");
         }
 
-        if (is_session_normal(session)) {
+        if (session._tag === "Session::normal") {
           const maybeUser = await kv.get<User>(["user", session.user_id]);
           const user = maybeUser.value;
 
@@ -74,50 +76,7 @@ const machine = setup({
         ...input,
       };
     },
-    initial: "Process google data",
     states: {
-      "Process google data": {
-        invoke: {
-          src: "process_google_data",
-          input: ({ context: { gCode, state } }) => ({
-            code: gCode,
-            state,
-          }),
-          onDone: [
-            {
-              target: "Some user case",
-              guard: {
-                type: "is_some_user_case",
-                params({ context }) {
-                  return context;
-                },
-              },
-              actions: assign(({ event }) => {
-                const user = event.output.user;
-                return {
-                  g: event.output.g,
-                  user,
-                };
-              }),
-            },
-            {
-              target: "Unknown session case",
-              actions: assign(({ event }) => {
-                const unknown_session = event.output.unknown_session!;
-                return {
-                  g: event.output.g,
-                };
-              }),
-            },
-          ],
-          onError: {
-            target: "Something went wrong",
-            actions: "clean_auth_cookies",
-          },
-        },
-      },
-      "Unknown session case": {},
-      "Some user case": {},
       "Something went wrong": {
         always: {
           target: "Complete",
@@ -160,6 +119,7 @@ type tCtx = tInput & {
   output?: tOutput;
   g?: ResultGoogleCpDataProcessing;
   user?: User | undefined;
+  unknown_session?: Session | undefined;
 };
 
 type tActor = {
@@ -173,7 +133,7 @@ type tActor = {
       & ({
         user: User;
         unknown_session?: never;
-      } | { user?: never; unknown_session: Session<"unknwon"> });
+      } | { user?: never; unknown_session: Session });
   };
 };
 

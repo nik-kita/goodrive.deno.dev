@@ -1,5 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { Env } from "./env.ts";
+import { SECOND } from "@std/datetime";
 
 const google_oauth2_client = new OAuth2Client({
   clientId: Env.GOOGLE_CLIENT_ID,
@@ -35,6 +36,12 @@ export const google_process_cb_data = async (code: string) => {
   const info = await google_oauth2_client.getTokenInfo(
     payload.tokens.access_token,
   );
+
+  if (info.expiry_date - Date.now() < 60 * SECOND * 2) {
+    throw new Error(
+      "The remained time of google access token live is too small",
+    );
+  }
 
   return {
     payload,

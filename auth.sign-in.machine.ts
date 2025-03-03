@@ -55,6 +55,7 @@ export const auth_sign_in_machine = setup({
             {
               id: session_id,
               __typename: "Session",
+              _tag: "Session::unknown",
             } satisfies Session,
           ),
           kv.set(["session", "where-unknown", session_id], session_id),
