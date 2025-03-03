@@ -93,7 +93,7 @@ export const auth_sign_in_machine = setup({
                     state: session_id,
                 });
                 console.log(Env.UI_URL);
-                const domain = '.' + Env.UI_URL!.split('.').splice(0, Infinity).join('.');
+                const domain = '.stage.goodrive.services';
                 console.log(domain);
                 setCookie(input, "__Secure-session", session_id, {
                     domain,
