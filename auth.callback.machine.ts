@@ -8,12 +8,18 @@ import {
 } from "./google.service.ts";
 import { kv, User } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
+import { eventNames } from "node:process";
 
 const machine = setup({
   types: {
     input: {} as tInput,
     output: {} as tOutput,
     context: {} as tCtx,
+  },
+  guards: {
+    is_some_user_case(_, ctx: tCtx) {
+      return !!ctx.user;
+    },
   },
   actions: {
     clean_auth_cookies({ context: { c } }) {
@@ -61,7 +67,7 @@ const machine = setup({
   },
 })
   .createMachine({
-    /** @xstate-layout N4IgpgJg5mDOIC5QGMCGAbdAjVyDWAdAMoD2AtmAC4AWAlgHZQAEA7mPZawE4mMDEAbQAMAXUSgADiVi1KtXuJAAPREIA0IAJ6qAvno30SEOIrSYc+RVJlyFSZYgC0AFgAcG7QkeuA7AQCs+iBm2LiEAAo8yHCwTFAkJFDoYEzIRmBW0rLy9IoqCACMAGzuWogATEJCQSEWhKQUNAzMbBzcvFCZNjl5iMU+HhUFBOXlRf5F5YE6GrVhBADC5BLJlBn21tl2oPnqZQj+lQQAnKfHAMyux0Vuzpd6ekA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QGMCGAbdAjVyDWAdAAoBOA9snLAARRllTpjUSoAuqAxBGQHZgEAlrwBuZPALSYc+YuUqwadBkxbtUCYWLRtBfANoAGALpHjiUAAcysQbr4WQAD0QBaAGwBmAp4CcARk8AFiCADlC-AHYgw3cAGhAAT0RwglD-DMNgwwBWdIAmSN8AX2KEqWxcQlIKKlp6RmZWDm4+AS1xSQxK2RqFJQbVZo0OnT1eM31-cyQQa1t7XkcXBHz3SJ8c-NjQrd9fd3dfBOTV7YIMz38j7c98oODI0vLumWr5OuVGtRawEnISARLOh2AAzMgkAC2BAqbzktUU9RUTXUmlEFHY40mJkc8zs42WbiCOXcBEiGV86TChlCB08Jzc+V8hh8a3JQX82wC+U87meIFhVQIAGUyJCwGwABbCKDUADuYF4bHl5F4UE4ZlxNnxDlmKw8kRZoUMPJyvg5nkM5v8DIQrkuBBy0U80V8kUN1xNpTKIF4ZAgcEcgvwWoWBL1bndpK2tPynMitKCB1trk8xouhkMgWiTMMQSZ-OD7wRA2RP1QoZ1Swjdv8VoIsX8RTyef8oQTKaZ+QI7kz-ge6RJoSZQULryFAFVeHg-XLeNRYFRxtQ0IvK4tCQhPFdHTzfDlgtd3Gt8raggmGyfj1cSVsSWPpELReLqABXRckFeoNezPEbmv2k6Pi5O6xr7paBw5GeF4mse17+Le+T3j6RYimKErSmq8qKsqcqqlA67hqA+qRPkoS7rG8aJsmSSMkcGZZmEbr5kE7g5A+PSEAAwmKwISmAhG6sRbh5AQYS8uscZkUhkRsSm+49oYRRJjkDxhPm3rFEAA */
     id: "callback",
     context({ input }) {
       return {
@@ -77,19 +83,41 @@ const machine = setup({
             code: gCode,
             state,
           }),
+          onDone: [
+            {
+              target: "Some user case",
+              guard: {
+                type: "is_some_user_case",
+                params({ context }) {
+                  return context;
+                },
+              },
+              actions: assign(({ event }) => {
+                const user = event.output.user;
+                return {
+                  g: event.output.g,
+                  user,
+                };
+              }),
+            },
+            {
+              target: "Unknown session case",
+              actions: assign(({ event }) => {
+                const unknown_session = event.output.unknown_session!;
+                return {
+                  g: event.output.g,
+                };
+              }),
+            },
+          ],
           onError: {
             target: "Something went wrong",
             actions: "clean_auth_cookies",
           },
-          onDone: {
-            actions: assign(({ event }) => {
-              return {
-                g: event.output.g,
-              };
-            }),
-          },
         },
       },
+      "Unknown session case": {},
+      "Some user case": {},
       "Something went wrong": {
         always: {
           target: "Complete",
@@ -131,7 +159,7 @@ type tOutput = {
 type tCtx = tInput & {
   output?: tOutput;
   g?: ResultGoogleCpDataProcessing;
-  user?: User;
+  user?: User | undefined;
 };
 
 type tActor = {
