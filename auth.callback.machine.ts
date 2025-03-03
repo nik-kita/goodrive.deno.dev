@@ -75,6 +75,7 @@ const machine = setup({
                         state: session_id,
                         include_granted_scopes: true,
                         login_hint: g.info.email!,
+                        access_type: "offline",
                     },
                 );
 
