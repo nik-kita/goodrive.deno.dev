@@ -98,6 +98,8 @@ export const auth_sign_in_machine = setup({
                     ),
                     httpOnly: true,
                     sameSite: "Lax",
+                    path: '/',
+                    maxAge: SECOND * 60 * 5,
                     secure: true,
                 });
 

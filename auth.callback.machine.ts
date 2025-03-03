@@ -11,6 +11,7 @@ import {
 } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
+import { SECOND } from "@std/datetime/constants";
 
 const machine = setup({
     types: {
@@ -65,10 +66,10 @@ const machine = setup({
         prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental:
             fromPromise<
                 tActor[
-                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
+                "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
                 ]["output"],
                 tActor[
-                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
+                "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
                 ]["input"]
             >(async ({ input: { session_id, g } }) => {
                 const redirect_for_gDrive = google_sign_in_url(
@@ -201,111 +202,111 @@ const machine = setup({
                     "Check is new refresh and gDrive scopes present in google payload",
                 states: {
                     "Check is new refresh and gDrive scopes present in google payload":
-                        {
-                            always: [
-                                {
-                                    target:
-                                        "The new refresh, gDrive scopes are present in google payload",
-                                    guard: "is_new_refresh_token_present",
-                                },
-                                {
-                                    target:
-                                        "There is NO refresh in google payload",
-                                },
-                            ],
-                        },
+                    {
+                        always: [
+                            {
+                                target:
+                                    "The new refresh, gDrive scopes are present in google payload",
+                                guard: "is_new_refresh_token_present",
+                            },
+                            {
+                                target:
+                                    "There is NO refresh in google payload",
+                            },
+                        ],
+                    },
                     "The new refresh, gDrive scopes are present in google payload":
-                        {
-                            initial: "Check is session already active",
-                            states: {
-                                "Check is session already active": {
-                                    always: [
-                                        {
-                                            guard: "is_session_active",
-                                            target:
-                                                "Update user with new refresh",
-                                        },
-                                        "Create new user and update session",
-                                    ],
-                                },
-                                "Update user with new refresh": {
-                                    invoke: {
-                                        src: "update_user_with_new_refresh",
-                                        input({ context: { g, session } }) {
-                                            return {
-                                                g: g!,
-                                                session: session!,
-                                            };
-                                        },
-                                        onDone: {
-                                            target: "#callback.Complete",
-                                            actions: assign(
-                                                (
-                                                    { context: { c, session } },
-                                                ) => {
-                                                    return {
-                                                        output: {
-                                                            success_complete_payload:
-                                                                {
-                                                                    c,
-                                                                    session_id:
-                                                                        session!
-                                                                            .id,
-                                                                    email:
-                                                                        session!
-                                                                            .email!,
-                                                                    user_id:
-                                                                        session!
-                                                                            .user_id!,
-                                                                },
-                                                        },
-                                                    };
-                                                },
-                                            ),
-                                        },
-                                        onError: "#callback.Complete",
+                    {
+                        initial: "Check is session already active",
+                        states: {
+                            "Check is session already active": {
+                                always: [
+                                    {
+                                        guard: "is_session_active",
+                                        target:
+                                            "Update user with new refresh",
                                     },
-                                },
-                                "Create new user and update session": {
-                                    invoke: {
-                                        src: "create_user_and_update_session",
-                                        input({ context: { g, session } }) {
-                                            return {
-                                                g: g!,
-                                                session_id: session!.id,
-                                            };
-                                        },
-                                        onDone: {
-                                            target: "#callback.Complete",
-                                            actions: assign(
-                                                (
-                                                    { context: { c, session } },
-                                                ) => {
-                                                    return {
-                                                        output: {
-                                                            success_complete_payload:
-                                                                {
-                                                                    c,
-                                                                    session_id:
-                                                                        session!
-                                                                            .id,
-                                                                    email:
-                                                                        session!
-                                                                            .email!,
-                                                                    user_id:
-                                                                        session!
-                                                                            .user_id!,
-                                                                },
-                                                        },
-                                                    };
-                                                },
-                                            ),
-                                        },
-                                        onError: "#callback.Complete",
+                                    "Create new user and update session",
+                                ],
+                            },
+                            "Update user with new refresh": {
+                                invoke: {
+                                    src: "update_user_with_new_refresh",
+                                    input({ context: { g, session } }) {
+                                        return {
+                                            g: g!,
+                                            session: session!,
+                                        };
                                     },
+                                    onDone: {
+                                        target: "#callback.Complete",
+                                        actions: assign(
+                                            (
+                                                { context: { c, session } },
+                                            ) => {
+                                                return {
+                                                    output: {
+                                                        success_complete_payload:
+                                                        {
+                                                            c,
+                                                            session_id:
+                                                                session!
+                                                                    .id,
+                                                            email:
+                                                                session!
+                                                                    .email!,
+                                                            user_id:
+                                                                session!
+                                                                    .user_id!,
+                                                        },
+                                                    },
+                                                };
+                                            },
+                                        ),
+                                    },
+                                    onError: "#callback.Complete",
+                                },
+                            },
+                            "Create new user and update session": {
+                                invoke: {
+                                    src: "create_user_and_update_session",
+                                    input({ context: { g, session } }) {
+                                        return {
+                                            g: g!,
+                                            session_id: session!.id,
+                                        };
+                                    },
+                                    onDone: {
+                                        target: "#callback.Complete",
+                                        actions: assign(
+                                            (
+                                                { context: { c, session } },
+                                            ) => {
+                                                return {
+                                                    output: {
+                                                        success_complete_payload:
+                                                        {
+                                                            c,
+                                                            session_id:
+                                                                session!
+                                                                    .id,
+                                                            email:
+                                                                session!
+                                                                    .email!,
+                                                            user_id:
+                                                                session!
+                                                                    .user_id!,
+                                                        },
+                                                    },
+                                                };
+                                            },
+                                        ),
+                                    },
+                                    onError: "#callback.Complete",
                                 },
                             },
                         },
+                    },
                     "There is NO refresh in google payload": {
                         initial: "Check is session already active",
                         states: {
@@ -367,7 +368,10 @@ const machine = setup({
                                     ),
                                     httpOnly: true,
                                     sameSite: "Lax",
+                                    path: '/',
+                                    maxAge: SECOND * 60 * 5,
                                     secure: true,
+
                                 });
                                 return {
                                     output: {
