@@ -1,13 +1,15 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
+import { is_session_normal, Session } from "./const.ts";
 import {
   google_process_cb_data,
   ResultGoogleCpDataProcessing,
 } from "./google.service.ts";
+import { kv, User } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
 
-export const auth_callback_machine = setup({
+const machine = setup({
   types: {
     input: {} as tInput,
     output: {} as tOutput,
@@ -19,11 +21,41 @@ export const auth_callback_machine = setup({
     },
   },
   actors: {
-    process_google_code: fromPromise<ResultGoogleCpDataProcessing, string>(
-      async ({ input }) => {
-        const gData = await google_process_cb_data(input);
+    process_google_data: fromPromise<
+      tActor["process_google_data"]["output"],
+      tActor["process_google_data"]["input"]
+    >(
+      async ({ input: { code, state } }) => {
+        const [g, maybeSession] = await Promise.all([
+          google_process_cb_data(code),
+          kv.get<Session>(["session", state]),
+        ]);
+        const session = maybeSession.value;
 
-        return gData;
+        if (!session) {
+          throw new Error("Unable to resolve <state> from google res");
+        }
+
+        if (is_session_normal(session)) {
+          const maybeUser = await kv.get<User>(["user", session.user_id]);
+          const user = maybeUser.value;
+
+          if (!user) {
+            throw new Error(
+              "Unexpected 'not found' of user by id from session",
+            );
+          }
+
+          return {
+            g,
+            user,
+          };
+        }
+
+        return {
+          g,
+          unknown_session: session,
+        };
       },
     ),
   },
@@ -36,12 +68,15 @@ export const auth_callback_machine = setup({
         ...input,
       };
     },
-    initial: "Process google code",
+    initial: "Process google data",
     states: {
-      "Process google code": {
+      "Process google data": {
         invoke: {
-          src: "process_google_code",
-          input: ({ context: { gCode } }) => gCode,
+          src: "process_google_data",
+          input: ({ context: { gCode, state } }) => ({
+            code: gCode,
+            state,
+          }),
           onError: {
             target: "Something went wrong",
             actions: "clean_auth_cookies",
@@ -49,7 +84,7 @@ export const auth_callback_machine = setup({
           onDone: {
             actions: assign(({ event }) => {
               return {
-                g: event.output,
+                g: event.output.g,
               };
             }),
           },
@@ -87,6 +122,7 @@ export const auth_callback_machine = setup({
 type tInput = {
   c: Context;
   gCode: string;
+  state: string;
 };
 type tOutput = {
   exception: HTTPException;
@@ -95,4 +131,22 @@ type tOutput = {
 type tCtx = tInput & {
   output?: tOutput;
   g?: ResultGoogleCpDataProcessing;
+  user?: User;
 };
+
+type tActor = {
+  process_google_data: {
+    input: {
+      code: string;
+      state: string;
+    };
+    output:
+      & { g: ResultGoogleCpDataProcessing }
+      & ({
+        user: User;
+        unknown_session?: never;
+      } | { user?: never; unknown_session: Session<"unknwon"> });
+  };
+};
+
+export const auth_callback_machine = machine;
