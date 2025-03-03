@@ -1,13 +1,13 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { GOOGLE_GDRIVE_SCOPES, Session } from "./const.ts";
+import { Bucket, GOOGLE_GDRIVE_SCOPES, Session, User } from "./const.ts";
 import {
     google_process_cb_data,
     google_sign_in_url,
     ResultGoogleCpDataProcessing,
 } from "./google.service.ts";
-import { kv, User } from "./kv.ts";
+import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
 
 const machine = setup({
@@ -87,12 +87,57 @@ const machine = setup({
         update_user_with_new_refresh: fromPromise<
             tActor["update_user_with_new_refresh"]["output"],
             tActor["update_user_with_new_refresh"]["input"]
-        >(async ({ input: { g } }) => {
+        >(async ({ input: { g, session } }) => {
+            const key = ["user", session.user_id!];
+            const user = await kv.get<User>(key);
+
+            if (!user.value) {
+                throw new Error(
+                    "Unexpected fact that the user by session is not exist",
+                );
+            }
+
+            user.value.buckets.set(g.info.email!, {
+                __typename: "Bucket",
+                access_token: g.payload.tokens.access_token!,
+                refresh_token: g.payload.tokens.refresh_token!,
+                email: g.info.email!,
+                user_id: session.user_id!,
+            });
+
+            await kv.set(key, user.value satisfies User);
         }),
         create_user_and_update_session: fromPromise<
             tActor["create_user_and_update_session"]["output"],
             tActor["create_user_and_update_session"]["input"]
         >(async ({ input: { g, session_id } }) => {
+            const user_id = crypto.randomUUID();
+            await Promise.all([
+                kv.set(
+                    ["user", user_id],
+                    {
+                        __typename: "User",
+                        id: user_id,
+                        buckets: new Map<string, Bucket>().set(g.info.email!, {
+                            __typename: "Bucket",
+                            access_token: g.payload.tokens.access_token!,
+                            refresh_token: g.payload.tokens.refresh_token!,
+                            email: g.info.email!,
+                            user_id,
+                        }),
+                    } satisfies User,
+                ),
+                kv.set(
+                    ["session", session_id],
+                    {
+                        __typename: "Session",
+                        _tag: "Session::normal",
+                        user_id,
+                        email: g.info.email!,
+                        id: session_id,
+                    } satisfies Session,
+                ),
+            ]);
         }),
     },
 })
@@ -183,9 +228,10 @@ const machine = setup({
                                 "Update user with new refresh": {
                                     invoke: {
                                         src: "update_user_with_new_refresh",
-                                        input({ context: { g } }) {
+                                        input({ context: { g, session } }) {
                                             return {
                                                 g: g!,
+                                                session: session!,
                                             };
                                         },
                                         onDone: {
@@ -381,6 +427,7 @@ type tActor = {
     update_user_with_new_refresh: {
         input: {
             g: ResultGoogleCpDataProcessing;
+            session: Session;
         };
         output: void;
     };

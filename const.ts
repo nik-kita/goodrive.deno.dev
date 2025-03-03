@@ -32,11 +32,17 @@ export type AppCtx<T extends object = Record<string, unknown>> = {
     Variables: EmptyObj & T;
 };
 
+export type Bucket = {
+    __typename: "Bucket";
+    user_id: string;
+    email: string;
+    access_token: string;
+    refresh_token: string;
+};
 export type User = {
     __typename: "User";
     id: string;
-    another_emails: string[];
-    session_email: string;
+    buckets: Map<string, Bucket>;
 };
 export type Session =
     & {
