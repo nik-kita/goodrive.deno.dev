@@ -93,7 +93,7 @@ export const auth_sign_in_machine = setup({
                     state: session_id,
                 });
                 setCookie(input, "session", session_id, {
-                    domain: `.${Env.UI_URL}`,
+                    domain: Env.UI_URL!.split('.').slice(-2).join('.'),
                     httpOnly: true,
                     sameSite: "Lax",
                     secure: true,
