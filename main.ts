@@ -35,10 +35,9 @@ app
                     console.log(s.context.output);
 
                     if (s.status === "active") {
-                        console.log('...active')
-                    }
-                    else if (s.status === "done") {
-                        console.log('Done!')
+                        console.log("...active");
+                    } else if (s.status === "done") {
+                        console.log("Done!");
                         resolve(s.output);
                     } else {
                         reject(s.toJSON());
@@ -111,7 +110,7 @@ app
                     console.log(s.value);
                     console.log(s.context);
 
-                    if (s.status === "active") { }
+                    if (s.status === "active") {}
                     else if (s.status === "done") {
                         resolve(s.output);
                     } else {

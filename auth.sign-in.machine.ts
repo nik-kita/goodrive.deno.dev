@@ -9,6 +9,7 @@ import {
     Session,
     User,
 } from "./const.ts";
+import { Env } from "./env.ts";
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
@@ -91,7 +92,12 @@ export const auth_sign_in_machine = setup({
                     ],
                     state: session_id,
                 });
-                setCookie(input, "session", session_id);
+                setCookie(input, "session", session_id, {
+                    domain: `.${Env.UI_URL}`,
+                    httpOnly: true,
+                    sameSite: "Lax",
+                    secure: true,
+                });
 
                 return redirect_url;
             },
