@@ -121,7 +121,7 @@ export const auth_sign_in_machine = setup({
     context({ input }) {
         return {
             ...input,
-            auth_cookies: getCookie(input.c, "auth"),
+            auth_cookies: getCookie(input.c, "session"),
             output: null,
         };
     },
