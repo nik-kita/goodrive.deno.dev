@@ -64,6 +64,14 @@ app.use(mdw_cors());
     });
     await db.ghost.findByPrimaryIndex("id", id);
 
+    setCookie(c, AUTH_COOKIE_NAME, id, {
+      domain: `.${Env.UI_URL!}`,
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: true,
+    });
+
+
     return c.redirect(redirect);
   });
 app
