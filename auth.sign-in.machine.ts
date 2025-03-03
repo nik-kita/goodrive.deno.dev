@@ -143,7 +143,7 @@ export const auth_sign_in_machine = setup({
         actions: assign({
           output: {
             exception: new HTTPException(500, {
-              message: "Something went wrong",
+              message: "Something went wrong (x-sign-in)",
               cause: "not covered scenario",
             }),
           },
@@ -157,7 +157,7 @@ export const auth_sign_in_machine = setup({
   output: ({ context }) => {
     const result = context.output || {
       exception: new HTTPException(500, {
-        message: "Something went wrong",
+        message: "Something went wrong (x-sign-in)",
         cause: "oops",
       }),
     };

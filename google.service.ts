@@ -41,3 +41,6 @@ export const google_process_cb_data = async (code: string) => {
     info,
   };
 };
+export type ResultGoogleCpDataProcessing = Awaited<
+  ReturnType<typeof google_process_cb_data>
+>;
