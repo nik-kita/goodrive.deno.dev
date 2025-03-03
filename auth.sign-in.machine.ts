@@ -112,7 +112,7 @@ export const auth_sign_in_machine = setup({
     },
     after: {
         max_total_time: {
-            target: "Complete",
+            target: ".Complete",
             actions: ["clean_auth_cookies"],
         },
     },
