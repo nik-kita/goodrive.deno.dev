@@ -1,7 +1,9 @@
 import { Context } from "hono";
+import { setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
 import { Bucket, GOOGLE_GDRIVE_SCOPES, Session, User } from "./const.ts";
+import { Env } from "./env.ts";
 import {
     google_process_cb_data,
     google_sign_in_url,
@@ -9,7 +11,6 @@ import {
 } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
-import { setCookie } from "hono/cookie";
 
 const machine = setup({
     types: {
@@ -346,21 +347,35 @@ const machine = setup({
                     },
                     onDone: {
                         target: "Complete",
-                        actions: assign(({ event, context: { c } }) => {
-                            return {
-                                output: {
-                                    redirect: c.newResponse(null, {
-                                        status: 302,
-                                        headers: {
-                                            Location: event.output
-                                                .redirect_for_gDrive,
-                                            Authorization: event.output
-                                                .authorization_header,
-                                        },
-                                    }),
-                                },
-                            };
-                        }),
+                        actions: assign(
+                            ({ event, context: { c, session } }) => {
+                                const redirect = c.newResponse(null, {
+                                    status: 302,
+                                    headers: {
+                                        Location: event.output
+                                            .redirect_for_gDrive,
+                                        Authorization: event.output
+                                            .authorization_header,
+                                    },
+                                });
+                                setCookie(c, "session", session!.id, {
+                                    domain: Env.UI_URL!.split(".").splice(
+                                        1,
+                                        Infinity,
+                                    ).join(
+                                        ".",
+                                    ),
+                                    httpOnly: true,
+                                    sameSite: "Lax",
+                                    secure: true,
+                                });
+                                return {
+                                    output: {
+                                        redirect,
+                                    },
+                                };
+                            },
+                        ),
                     },
                     onError: {
                         target: "Complete",

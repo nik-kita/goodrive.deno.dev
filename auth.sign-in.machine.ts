@@ -105,9 +105,6 @@ export const auth_sign_in_machine = setup({
             },
         ),
     },
-    delays: {
-        max_total_time: 3000,
-    },
 }).createMachine({
     /** @xstate-layout N4IgpgJg5mDOIC5SwJZQHYFoXoMQA9YAXAQyLADoSAzcgJwAoBbE-AfSIHtSAbDlJmACUuVBmzoA2gAYAuolAAHTqiIpO6BSHyIALACYANCACeiABwBGCgFZp96ZYCcANhf7L+804C+P42JYOBQAwgAWYADGANYABIp0YABusbBwqBqhETGxKLCxJACuRGGxkZyc0ShwsWD4eUSwAPy4MvJIIMqq6podOggAzLrSFNIDni5OAOzSBjMDxmaD5iPzllMrlkPDs34BaEHoWVFxCcmp6T3HOXkFxaXlldX5dQ3NrZbtSiooahpa-ScW1GG0sdgG5hc5iGNkWiH0AxcFCcNnGTmk030uhRnj2IECEmup0SKTSsAyR3CJ1y+TOpMuGliSRIPBQEBaEA0lBwSUqlAJwSpOTpF3JVyFcVuIrJFKZLLZTQQPM4kTIPTabS0XV+PQBiCBAxBVnBkOhulhpj0AxsyP0010pvW0hcUymeIFlOyxPOMvFXpp8RJotlzNZ7NwYDodE4dAoih4ZGoMaYFA9RMDPoZnupUqDvsZoYVSvQvNVfykck1HW15b1CANRrBY1NMLhgwMyKmbn09nMBksuhcA3dB0JACVIChEpEiKlOIIubEuLEoBUoDwwLEAO6-UpMHACFmpcqKOC4Tnobklvmp0fBCcQKdRWewedgRfL1ecdebnclWL7ugh48MenCnrAxalmqGganIWo-LWfSIO4baQk4FDDEOPY2FM+hDn2I7iPek7Ti+b4fpwK5rhu267gBB4sCBsAnmekbRrG8aJsmt5EUcD5PjOc4LpeS6UV+P60f+gHAaB4GQSq0EVrIVbfN0-xIQglguNI+gUPodiWFpUxghCXhtgiUyjIiNiWI4eHePohGHBQADKWYBiyiQkBAJgFDOKDMuQECGHOsToNwYQ4FAomxJyrRwdWCG6hpNhGJa9buBQ1pOLo2JOlsYxOYSLlviUUXbmA6Czlu0boFA8VfJ0SXqaA-R2uhsxQk4Th4YOkK6G2uGWQY0w2O4UwQj1w54uFEBwFoHrwWpvStYgmBYm2mAuEVgr+tKWZLTqLXaPCA3pXhlkouMXaWNCLi3Tt2bCnmWbprcRT-o8VQ1K8xDNIdiGrQguFtgMuG2NZ+hTLlLjYl2uiPem+1ipkEoBsjIbyuyAPJUDOG6LYYIuoO6xmpYoM2Da5rXaCY1OOMNiI-xpFCe+ImftRv50dJjGyfNiXLXWhn03pVgDHh2kujY0LmXhFAbC4djmlYUzSyiiNuSj6AeTwXk+X5aiBZAIWvmFEXlcunI48d-TCwT7gGZT+h2kMCzpboQy2va4wDGD6LTfsvGuaVkV1RVVXbrVUDWytJ3A1Mg3YhQRPjDs+nmNDiMhPO8ZgOQMd1rotkULDzouhs5pDuT6XmN4FC114ugzG41O+H4PhAA */
     id: "sign-in",
@@ -117,12 +114,6 @@ export const auth_sign_in_machine = setup({
             auth_cookies: getCookie(input.c, "session"),
             output: null,
         };
-    },
-    after: {
-        max_total_time: {
-            target: ".Complete",
-            actions: ["clean_auth_cookies"],
-        },
     },
     initial: "Check prev session",
     states: {
