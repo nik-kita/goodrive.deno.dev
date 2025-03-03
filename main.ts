@@ -147,7 +147,7 @@ app
             },
         },
     }, async (c) => {
-        const session_id = getCookie(c, "session");
+        const session_id = getCookie(c, "session", 'secure');
 
         if (!session_id) {
             throw new HTTPException(403, {
