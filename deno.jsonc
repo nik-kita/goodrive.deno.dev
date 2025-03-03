@@ -14,6 +14,7 @@
     "@std/http": "jsr:@std/http@^1.0.13",
     "google-auth-library": "npm:google-auth-library@8.0.0",
     "hono": "npm:hono@^4.7.2",
+    "xstate": "npm:xstate@^5.19.2",
     "zod": "npm:zod@^3.24.1"
   },
   "compilerOptions": {

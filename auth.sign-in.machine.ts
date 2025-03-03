@@ -1,0 +1,164 @@
+import { Context } from "hono";
+import { deleteCookie, getCookie } from "hono/cookie";
+import { HTTPException } from "hono/http-exception";
+import { assign, fromPromise, setup } from "xstate";
+import { google_sign_in_url } from "./google.service.ts";
+import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE } from "./const.ts";
+
+export const auth_sign_in_machine = setup({
+  types: {
+    input: {} as tInput,
+    output: {} as tOutput,
+    context: {} as tCtx,
+  },
+  guards: {
+    is_prev_session_exists({ context: { auth_cookies } }) {
+      return !!auth_cookies;
+    },
+  },
+  actions: {
+    clean_auth_cookies({ context: { c } }) {
+      deleteCookie(c, "auth");
+    },
+  },
+  actors: {
+    get_user_from_prev_session: fromPromise<User, string>(async ({ input }) => {
+      return {} as User;
+    }),
+    prepare_redirect_to_google_sign_in: fromPromise<void, Context>(
+      async ({ input }) => {
+        const session_id = crypto.randomUUID();
+        const redirect_url = google_sign_in_url({
+          scope: [GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE],
+          state: session_id,
+        });
+      },
+    ),
+  },
+  delays: {
+    max_total_time: 3000,
+  },
+}).createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJZQHYFoXoMQA9YAXAQyLADoSAzcgJwAoBbE-AfSIHtSAbDlJmACUuVBmzoA2gAYAuolAAHTqiIpO6BSHyIALACYANCACeiABwBGCgFZp96ZYCcANhf7L+804C+P42JYOBQAwgAWYADGANYABIp0YABusbBwqBqhETGxKLCxJACuRGGxkZyc0ShwsWD4eUSwAPy4MvJIIMqq6podOggAzLrSFNIDni5OAOzSBjMDxmaD5iPzllMrlkPDs34BaEHoWVFxCcmp6T3HOXkFxaXlldX5dQ3NrZbtSiooahpa-ScW1GG0sdgG5hc5iGNkWiH0AxcFCcNnGTmk030uhRnj2IECEmup0SKTSsAyR3CJ1y+TOpMuGliSRIPBQEBaEA0lBwSUqlAJwSpOTpF3JVyFcVuIrJFKZLLZTQQPM4kTIPTabS0XV+PQBiCBAxBVnBkOhulhpj0AxsyP0010pvW0hcUymeIFlOyxPOMvFXpp8RJotlzNZ7NwYDodE4dAoih4ZGoMaYFA9RMDPoZnupUqDvsZoYVSvQvNVfykck1HW15b1CANRrBY1NMLhgwMyKmbn09nMBksuhcA3dB0JACVIChEpEiKlOIIubEuLEoBUoDwwLEAO6-UpMHACFmpcqKOC4Tnobklvmp0fBCcQKdRWewedgRfL1ecdebnclWL7ugh48MenCnrAxalmqGganIWo-LWfSIO4baQk4FDDEOPY2FM+hDn2I7iPek7Ti+b4fpwK5rhu267gBB4sCBsAnmekbRrG8aJsmt5EUcD5PjOc4LpeS6UV+P60f+gHAaB4GQSq0EVrIVbfN0-xIQglguNI+gUPodiWFpUxghCXhtgiUyjIiNiWI4eHePohGHBQADKWYBiyiQkBAJgFDOKDMuQECGHOsToNwYQ4FAomxJyrRwdWCG6hpNhGJa9buBQ1pOLo2JOlsYxOYSLlviUUXbmA6Czlu0boFA8VfJ0SXqaA-R2uhsxQk4Th4YOkK6G2uGWQY0w2O4UwQj1w54uFEBwFoHrwWpvStYgmBYm2mAuEVgr+tKWZLTqLXaPCA3pXhlkouMXaWNCLi3Tt2bCnmWbprcRT-o8VQ1K8xDNIdiGrQguFtgMuG2NZ+hTLlLjYl2uiPem+1ipkEoBsjIbyuyAPJUDOG6LYYIuoO6xmpYoM2Da5rXaCY1OOMNiI-xpFCe+ImftRv50dJjGyfNiXLXWhn03pVgDHh2kujY0LmXhFAbC4djmlYUzSyiiNuSj6AeTwXk+X5aiBZAIWvmFEXlcunI48d-TCwT7gGZT+h2kMCzpboQy2va4wDGD6LTfsvGuaVkV1RVVXbrVUDWytJ3A1Mg3YhQRPjDs+nmNDiMhPO8ZgOQMd1rotkULDzouhs5pDuT6XmN4FC114ugzG41O+H4PhAA */
+  id: "sign-in",
+  context({ input }) {
+    return {
+      ...input,
+      auth_cookies: getCookie(input.c, "auth"),
+      output: null,
+    };
+  },
+  after: {
+    max_total_time: {
+      target: "Something went wrong",
+      actions: ["clean_auth_cookies"],
+    },
+  },
+  initial: "Check prev session",
+  states: {
+    "Check prev session": {
+      initial: "Check is auth cookies exists?",
+      states: {
+        "Check is auth cookies exists?": {
+          always: [
+            {
+              guard: "is_prev_session_exists",
+              target: "Check is prev session valid?",
+            },
+            "#sign-in.Redirect someone to google with minimal scopes",
+          ],
+        },
+        "Check is prev session valid?": {
+          invoke: {
+            src: "get_user_from_prev_session",
+            input: ({ context: { auth_cookies } }) => auth_cookies!,
+            onError: {
+              actions: ["clean_auth_cookies"],
+              target: "#sign-in.Redirect someone to google with minimal scopes",
+            },
+            onDone: "#sign-in.Session is already activated, so nothing to do",
+          },
+        },
+      },
+    },
+    "Redirect someone to google with minimal scopes": {
+      invoke: {
+        src: "prepare_redirect_to_google_sign_in",
+        input: ({ context: { c } }) => c,
+        onDone: {
+          target: "Complete",
+          actions: assign(({ context: { c } }) => {
+            return {
+              output: {
+                redirect: c.redirect("/todo"),
+              },
+            };
+          }),
+        },
+        onError: {
+          target: "Something went wrong",
+        },
+      },
+    },
+    "Session is already activated, so nothing to do": {
+      always: {
+        target: "Complete",
+        actions: assign({
+          output: {
+            exception: new HTTPException(400, {
+              message: "Not required sign-in request",
+              cause: "You are already logged in",
+            }),
+          },
+        }),
+      },
+    },
+    "Something went wrong": {
+      always: {
+        target: "Complete",
+        actions: assign({
+          output: {
+            exception: new HTTPException(500, {
+              message: "Something went wrong",
+              cause: "not covered scenario",
+            }),
+          },
+        }),
+      },
+    },
+    "Complete": {
+      type: "final",
+    },
+  },
+  output: ({ context }) => {
+    const result = context.output || {
+      exception: new HTTPException(500, {
+        message: "Something went wrong",
+        cause: "oops",
+      }),
+    };
+
+    return result;
+  },
+});
+
+type tInput = {
+  c: Context;
+};
+type tCtx = tInput & {
+  auth_cookies: string | undefined;
+  output: tOutput | null;
+};
+type tOutput = {
+  response: Response;
+} | {
+  redirect: ReturnType<Context["redirect"]>;
+} | {
+  exception: HTTPException;
+};
+
+type User = {
+  id: string;
+  another_emails: string[];
+  session_email: string;
+};
