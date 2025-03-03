@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { assign, fromPromise, setup } from "xstate";
-import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE } from "./const.ts";
+import { GOOGLE_EMAIL_SCOPE, GOOGLE_OPEN_ID_SCOPE, User } from "./const.ts";
 import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 
@@ -180,20 +180,3 @@ type tOutput = {
 } | {
   exception: HTTPException;
 };
-
-type User = {
-  id: string;
-  another_emails: string[];
-  session_email: string;
-};
-
-const EmptyObj = {};
-type EmptyObj = typeof EmptyObj;
-type Session =
-  & {
-    id: string;
-  }
-  & ({
-    user_id: string;
-    email: string;
-  } | EmptyObj);

@@ -1,3 +1,6 @@
+const EmptyObj = {};
+export type EmptyObj = typeof EmptyObj;
+
 export const GOOGLE_OPEN_ID_SCOPE = "openid";
 export const GOOGLE_GDRIVE_SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
@@ -26,5 +29,19 @@ export type GoogleAuthJwtPayload = {
 };
 
 export type AppCtx<T extends object = Record<string, unknown>> = {
-  Variables: {} & T;
+  Variables: EmptyObj & T;
 };
+
+export type User = {
+  id: string;
+  another_emails: string[];
+  session_email: string;
+};
+export type Session =
+  & {
+    id: string;
+  }
+  & ({
+    user_id: string;
+    email: string;
+  } | EmptyObj);
