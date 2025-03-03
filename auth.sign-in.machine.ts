@@ -94,13 +94,13 @@ export const auth_sign_in_machine = setup({
                 });
 
                 setCookie(input, "__Secure-session", session_id, {
-                    domain: Env.UI_URL!.split('.').splice(1, Infinity).join('.'),
+                    domain: Env.UI_URL!.split('.').splice(0, Infinity).join('.'),
                     httpOnly: true,
                     sameSite: "Lax",
                     secure: true,
                 });
                 setCookie(input, "session", session_id, {
-                    domain: Env.UI_URL!.split('.').splice(1, Infinity).join('.'),
+                    domain: Env.UI_URL!.split('.').splice(0, Infinity).join('.'),
                     httpOnly: true,
                     sameSite: "Lax",
                     secure: true,
