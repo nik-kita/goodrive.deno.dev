@@ -46,6 +46,13 @@ export const auth_callback_machine = setup({
             target: "Something went wrong",
             actions: "clean_auth_cookies",
           },
+          onDone: {
+            actions: assign(({ event }) => {
+              return {
+                g: event.output,
+              };
+            }),
+          },
         },
       },
       "Something went wrong": {
