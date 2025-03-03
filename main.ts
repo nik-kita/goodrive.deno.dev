@@ -7,7 +7,7 @@ import { auth_callback_machine } from "./auth.callback.machine.ts";
 import { auth_sign_in_machine } from "./auth.sign-in.machine.ts";
 import { Env } from "./env.ts";
 import { __drop__all__data__in__kv__ } from "./kv.ts";
-import { mdw_cors, mdw_ui_redirect_catch_all } from "./mdw.ts";
+import { mdw_cors } from "./mdw.ts";
 
 const app = new OpenAPIHono();
 
@@ -16,7 +16,6 @@ app
     .openapi({
         path: Env.API_ENDPOINT_AUTH_GOOGLE_SIGNIN,
         method: "get",
-        middleware: [mdw_ui_redirect_catch_all],
         responses: {
             200: {
                 description: "Authenticate user. Obtain email.",
@@ -31,13 +30,9 @@ app
         const output = await new Promise<OutputFrom<typeof sign_in_actor>>(
             (resolve, reject) => {
                 sign_in_actor.subscribe((s) => {
-                    console.log(s.value);
-                    console.log(s.context.output);
-
                     if (s.status === "active") {
-                        console.log("...active");
+                        ///
                     } else if (s.status === "done") {
-                        console.log("Done!");
                         resolve(s.output);
                     } else {
                         reject(s.toJSON());
@@ -80,7 +75,6 @@ app
                     "Fail to validate google request to application's callback endpoint",
             }),
         },
-        middleware: [mdw_ui_redirect_catch_all],
         responses: {
             200: {
                 description:
@@ -107,11 +101,9 @@ app
         const output = await new Promise<OutputFrom<typeof callback_actor>>(
             (resolve, reject) => {
                 callback_actor.subscribe((s) => {
-                    console.log(s.value);
-                    console.log(s.context.output);
-
-                    if (s.status === "active") {}
-                    else if (s.status === "done") {
+                    if (s.status === "active") {
+                        ///
+                    } else if (s.status === "done") {
                         resolve(s.output);
                     } else {
                         reject(s.toJSON());
@@ -174,5 +166,5 @@ if (Env.RUNTIME_ENV !== "prod" || !!"TODO: delete me!".length) {
 }
 
 Deno.serve({
-    port: 3000,
+    port: Env.API_PORT,
 }, app.fetch);
