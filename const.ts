@@ -33,15 +33,24 @@ export type AppCtx<T extends object = Record<string, unknown>> = {
 };
 
 export type User = {
+  __typename: "User";
   id: string;
   another_emails: string[];
   session_email: string;
 };
-export type Session =
+export type Session<T extends "unknown" | "normal" | string = string> =
   & {
+    __typename: "Session";
     id: string;
   }
-  & ({
-    user_id: string;
-    email: string;
-  } | EmptyObj);
+  & (T extends "normal" ? {
+      user_id: string;
+      email: string;
+    }
+    : EmptyObj);
+
+export const is_session_normal = (
+  session: Session,
+): session is Session<"normal"> => {
+  return !!(session as Session<"normal">).user_id;
+};
