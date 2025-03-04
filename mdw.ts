@@ -3,7 +3,10 @@ import { createMiddleware } from "hono/factory";
 import { AppCtx } from "./const.ts";
 
 export const mdw_cors = () => {
-    return cors();
+    return cors({
+        origin: '*',
+        credentials: true,
+    });
 };
 
 export const mdw_attach_referer = createMiddleware<
