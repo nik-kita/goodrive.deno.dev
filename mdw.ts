@@ -1,10 +1,11 @@
 import { cors } from "hono/cors";
 import { createMiddleware } from "hono/factory";
 import { AppCtx } from "./const.ts";
+import { Env } from "./env.ts";
 
 export const mdw_cors = () => {
     return cors({
-        origin: '*',
+        origin: Env.UI_URL!,
         credentials: true,
     });
 };
