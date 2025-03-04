@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { assign, fromPromise, setup } from "xstate";
+import { assign, setup } from "xstate";
 import { Bucket, GOOGLE_GDRIVE_SCOPES, Session, User } from "./const.ts";
 import {
     google_process_cb_data,
@@ -9,6 +9,7 @@ import {
 } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
+import { fn_to_promise_logic } from "./x-helpers.ts";
 
 const machine = setup({
     types: {
@@ -37,14 +38,11 @@ const machine = setup({
         },
     },
     actors: {
-        parse_google_code_and_state: fromPromise<
-            tActor["parse_google_code_and_state"]["output"],
-            tActor["parse_google_code_and_state"]["input"]
-        >(
-            async ({ input: { code, state } }) => {
+        parse_google_code_and_state: fn_to_promise_logic(
+            async (payload: { code: string; state: string }) => {
                 const [g, maybeSession] = await Promise.all([
-                    google_process_cb_data(code),
-                    kv.get<Session>(["session", state]),
+                    google_process_cb_data(payload.code),
+                    kv.get<Session>(["session", payload.state]),
                 ]);
                 const session = maybeSession.value;
 
@@ -61,106 +59,119 @@ const machine = setup({
             },
         ),
         prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental:
-            fromPromise<
-                tActor[
-                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
-                ]["output"],
-                tActor[
-                    "prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental"
-                ]["input"]
-            >(async ({ input: { session_id, g } }) => {
-                const email = g.info.email;
-                if (!email) {
-                    throw new Error("The email is missing in g.info");
-                } else if (!g.info.email_verified) {
-                    throw new Error("The email is not verified");
+            fn_to_promise_logic(
+                async (
+                    { session_id, g }: {
+                        session_id: string;
+                        g: ResultGoogleCpDataProcessing;
+                    },
+                ) => {
+                    const email = g.info.email;
+                    if (!email) {
+                        throw new Error("The email is missing in g.info");
+                    } else if (!g.info.email_verified) {
+                        throw new Error("The email is not verified");
+                    }
+
+                    await kv.set(
+                        ["session", session_id],
+                        {
+                            __typename: "Session",
+                            _tag: "Session::candidate",
+                            email,
+                            id: session_id,
+                        } satisfies Session,
+                    );
+                    const redirect_for_gDrive = google_sign_in_url(
+                        {
+                            scope: GOOGLE_GDRIVE_SCOPES,
+                            state: session_id,
+                            include_granted_scopes: false,
+                            login_hint: g.info.email!,
+                            access_type: "offline",
+                        },
+                    );
+
+                    return {
+                        redirect_for_gDrive,
+                        authorization_header: `Bearer ${g.payload.tokens
+                            .access_token!}`,
+                    };
+                },
+            ),
+        update_user_with_new_refresh: fn_to_promise_logic(
+            async (
+                { g, session }: {
+                    g: ResultGoogleCpDataProcessing;
+                    session: Session;
+                },
+            ) => {
+                const key = ["user", session.user_id!];
+                const user = await kv.get<User>(key);
+
+                if (!user.value) {
+                    throw new Error(
+                        "Unexpected fact that the user by session is not exist",
+                    );
                 }
 
-                await kv.set(
-                    ["session", session_id],
-                    {
-                        __typename: "Session",
-                        _tag: "Session::candidate",
-                        email,
-                        id: session_id,
-                    } satisfies Session,
-                );
-                const redirect_for_gDrive = google_sign_in_url(
-                    {
-                        scope: GOOGLE_GDRIVE_SCOPES,
-                        state: session_id,
-                        include_granted_scopes: false,
-                        login_hint: g.info.email!,
-                        access_type: "offline",
-                    },
-                );
+                user.value.buckets.set(g.info.email!, {
+                    __typename: "Bucket",
+                    access_token: g.payload.tokens.access_token!,
+                    refresh_token: g.payload.tokens.refresh_token!,
+                    email: g.info.email!,
+                    user_id: session.user_id!,
+                });
 
-                return {
-                    redirect_for_gDrive,
-                    authorization_header: `Bearer ${g.payload.tokens
-                        .access_token!}`,
-                };
-            }),
-        update_user_with_new_refresh: fromPromise<
-            tActor["update_user_with_new_refresh"]["output"],
-            tActor["update_user_with_new_refresh"]["input"]
-        >(async ({ input: { g, session } }) => {
-            const key = ["user", session.user_id!];
-            const user = await kv.get<User>(key);
-
-            if (!user.value) {
-                throw new Error(
-                    "Unexpected fact that the user by session is not exist",
-                );
-            }
-
-            user.value.buckets.set(g.info.email!, {
-                __typename: "Bucket",
-                access_token: g.payload.tokens.access_token!,
-                refresh_token: g.payload.tokens.refresh_token!,
-                email: g.info.email!,
-                user_id: session.user_id!,
-            });
-
-            await kv.set(key, user.value satisfies User);
-        }),
-        create_user_and_update_session: fromPromise<
-            tActor["create_user_and_update_session"]["output"],
-            tActor["create_user_and_update_session"]["input"]
-        >(async ({ input: { g, session } }) => {
-            if (session._tag !== "Session::candidate") {
-                throw new Error(
-                    `Unexpected session _tag. Check logic. Actual is <${session._tag}>, expected is <${session._tag}>`,
-                );
-            }
-            const user_id = crypto.randomUUID();
-            await Promise.all([
-                kv.set(
-                    ["user", user_id],
-                    {
-                        __typename: "User",
-                        id: user_id,
-                        buckets: new Map<string, Bucket>().set(g.info.email!, {
-                            __typename: "Bucket",
-                            access_token: g.payload.tokens.access_token!,
-                            refresh_token: g.payload.tokens.refresh_token!,
-                            email: session.email,
+                await kv.set(key, user.value satisfies User);
+            },
+        ),
+        create_user_and_update_session: fn_to_promise_logic(
+            async (
+                { g, session }: {
+                    g: ResultGoogleCpDataProcessing;
+                    session: Session;
+                },
+            ) => {
+                if (session._tag !== "Session::candidate") {
+                    throw new Error(
+                        `Unexpected session _tag. Check logic. Actual is <${session._tag}>, expected is <${session._tag}>`,
+                    );
+                }
+                const user_id = crypto.randomUUID();
+                await Promise.all([
+                    kv.set(
+                        ["user", user_id],
+                        {
+                            __typename: "User",
+                            id: user_id,
+                            buckets: new Map<string, Bucket>().set(
+                                g.info.email!,
+                                {
+                                    __typename: "Bucket",
+                                    access_token: g.payload.tokens
+                                        .access_token!,
+                                    refresh_token: g.payload.tokens
+                                        .refresh_token!,
+                                    email: session.email,
+                                    user_id,
+                                },
+                            ),
+                        } satisfies User,
+                    ),
+                    kv.set(
+                        ["session", session.id],
+                        {
+                            __typename: "Session",
+                            _tag: "Session::normal",
                             user_id,
-                        }),
-                    } satisfies User,
-                ),
-                kv.set(
-                    ["session", session.id],
-                    {
-                        __typename: "Session",
-                        _tag: "Session::normal",
-                        user_id,
-                        email: session.email,
-                        id: session.id,
-                    } satisfies Session,
-                ),
-            ]);
-        }),
+                            email: session.email,
+                            id: session.id,
+                        } satisfies Session,
+                    ),
+                ]);
+            },
+        ),
     },
 })
     .createMachine({
@@ -437,40 +448,6 @@ type tCtx = tInput & {
     user?: User | undefined;
     session?: Session | undefined;
     refresh_token: "present" | "not-present" | "unknown";
-};
-
-type tActor = {
-    parse_google_code_and_state: {
-        input: {
-            code: string;
-            state: string;
-        };
-        output: { g: ResultGoogleCpDataProcessing; session: Session };
-    };
-    prepare_redirect_to_google_sign_in_with_gDrive_scopes_incremental: {
-        input: {
-            session_id: string;
-            g: ResultGoogleCpDataProcessing;
-        };
-        output: {
-            redirect_for_gDrive: string;
-            authorization_header: string;
-        };
-    };
-    update_user_with_new_refresh: {
-        input: {
-            g: ResultGoogleCpDataProcessing;
-            session: Session;
-        };
-        output: void;
-    };
-    create_user_and_update_session: {
-        input: {
-            g: ResultGoogleCpDataProcessing;
-            session: Session;
-        };
-        output: void;
-    };
 };
 
 export const auth_callback_machine = machine;
