@@ -14,6 +14,10 @@ import { google_sign_in_url } from "./google.service.ts";
 import { kv } from "./kv.ts";
 import { clean_auth_cookies } from "./x-actions.ts";
 
+const domain = Env.UI_URL!.split(".")
+    .splice(1, Infinity)
+    .join(".");
+
 export const auth_sign_in_machine = setup({
     types: {
         input: {} as tInput,
@@ -93,13 +97,11 @@ export const auth_sign_in_machine = setup({
                     state: session_id,
                 });
                 setCookie(input, "session", session_id, {
-                    domain: Env.UI_URL!.split(".").splice(1, Infinity).join(
-                        ".",
-                    ),
+                    domain,
                     httpOnly: true,
                     sameSite: "Lax",
-                    path: '/',
-                    maxAge: SECOND * 60 * 5,
+                    path: "/",
+                    maxAge: SECOND * 60 * 60,
                     secure: true,
                 });
 

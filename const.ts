@@ -51,11 +51,20 @@ export type Session =
         email?: string | undefined | never;
         user_id?: string | undefined | never;
     }
-    & ({
-        _tag: "Session::unknown";
-        email?: string | undefined;
-    } | {
-        _tag: "Session::normal";
-        user_id: string;
-        email: string;
-    });
+    & (
+        | {
+            _tag: "Session::unknown";
+            email?: never;
+            user_id?: never;
+        }
+        | {
+            _tag: "Session::candidate";
+            email: string;
+            user_id?: never;
+        }
+        | {
+            _tag: "Session::normal";
+            user_id: string;
+            email: string;
+        }
+    );

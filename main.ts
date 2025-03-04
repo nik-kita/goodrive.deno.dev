@@ -151,7 +151,7 @@ app
 
         if (!session_id) {
             throw new HTTPException(403, {
-                message: "Who you are?",
+                message: "Who are you?",
                 cause: "no session",
             });
         }
@@ -160,7 +160,7 @@ app
 
         if (!session.value) {
             throw new HTTPException(403, {
-                message: "Who you are??",
+                message: "Who are you???",
                 cause: "no found session",
             });
         }
@@ -170,6 +170,12 @@ app
                 message: "You Are Someone",
                 description:
                     "Though your session is valid and active you are not authorize any google-drive",
+            });
+        } else if (session.value._tag === "Session::candidate") {
+            return c.json({
+                message: "You Are Candidate",
+                description:
+                    "Though without access to your google-drive we can't help you",
             });
         }
 
@@ -185,14 +191,11 @@ app
         }
 
         return c.json({
-            message: "Bingo!",
-            iam: {
-                ...user.value,
-                buckets: Array.from(user.value.buckets.values()).map((
-                    { email },
-                ) => email),
-                session_email: session.value.email,
-            },
+            ...user.value,
+            buckets: Array.from(user.value.buckets.values()).map((
+                { email },
+            ) => email),
+            session_email: session.value.email,
         });
     })
     .doc("/api", {
